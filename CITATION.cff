@@ -1,0 +1,19 @@
+cff-version: "1.2.0"
+message: "If you use this software, please cite it as below."
+title: kube-orchestrator
+abstract: "A full-featured Python SDK for Kubernetes — programmatic kubectl, GitOps engine, platform engineering SDK."
+authors:
+  - family-names: ABBES
+    given-names: Cherif
+    email: abbeschrif575@gmail.com
+license: MIT
+url: https://github.com/AbbesCheriif/kube-orchestrator
+repository-code: https://github.com/AbbesCheriif/kube-orchestrator
+keywords:
+  - kubernetes
+  - k8s
+  - devops
+  - sdk
+  - python
+  - platform-engineering
+  - gitops
