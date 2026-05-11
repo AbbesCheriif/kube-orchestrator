@@ -56,11 +56,11 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/abbeschrif575/kube-orchestrator"
+Homepage = "https://github.com/AbbesCheriif/kube-orchestrator"
 Documentation = "https://kube-orchestrator.readthedocs.io"
-Repository = "https://github.com/abbeschrif575/kube-orchestrator"
-Changelog = "https://github.com/abbeschrif575/kube-orchestrator/blob/main/CHANGELOG.md"
-"Bug Tracker" = "https://github.com/abbeschrif575/kube-orchestrator/issues"
+Repository = "https://github.com/AbbesCheriif/kube-orchestrator"
+Changelog = "https://github.com/AbbesCheriif/kube-orchestrator/blob/main/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/AbbesCheriif/kube-orchestrator/issues"
 
 [project.scripts]
 kube-orchestrator = "kube_orchestrator.cli.main:app"
