@@ -1,0 +1,172 @@
+[build-system]
+requires = ["setuptools>=68.0", "setuptools-scm>=8.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "kube-orchestrator"
+dynamic = ["version"]
+description = "A full-featured Python SDK for Kubernetes"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Abbes Cherif", email = "abbeschrif575@gmail.com"},
+]
+maintainers = [
+    {name = "Abbes Cherif", email = "abbeschrif575@gmail.com"},
+]
+keywords = [
+    "kubernetes",
+    "k8s",
+    "devops",
+    "sdk",
+    "kubectl",
+    "platform-engineering",
+    "gitops",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Internet",
+    "Typing :: Typed",
+]
+dependencies = [
+    "kubernetes>=28.1.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "structlog>=23.2.0",
+    "typer[all]>=0.9.0",
+    "rich>=13.7.0",
+    "pyyaml>=6.0.1",
+    "jinja2>=3.1.2",
+    "httpx>=0.25.0",
+    "tenacity>=8.2.3",
+    "python-dotenv>=1.0.0",
+    "tabulate>=0.9.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/abbeschrif575/kube-orchestrator"
+Documentation = "https://kube-orchestrator.readthedocs.io"
+Repository = "https://github.com/abbeschrif575/kube-orchestrator"
+Changelog = "https://github.com/abbeschrif575/kube-orchestrator/blob/main/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/abbeschrif575/kube-orchestrator/issues"
+
+[project.scripts]
+kube-orchestrator = "kube_orchestrator.cli.main:app"
+ko = "kube_orchestrator.cli.main:app"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.1.0",
+    "mypy>=1.7.0",
+    "pre-commit>=3.5.0",
+    "commitizen>=3.12.0",
+    "kubernetes-stubs>=28.1.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.4.0",
+    "mkdocstrings[python]>=0.24.0",
+    "mkdocs-gen-files>=0.5.0",
+    "mkdocs-literate-nav>=0.6.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["kube_orchestrator*"]
+
+[tool.setuptools.package-data]
+"kube_orchestrator" = ["py.typed"]
+
+[tool.setuptools_scm]
+write_to = "kube_orchestrator/_version.py"
+version_scheme = "post-release"
+fallback_version = "0.0.0"
+
+[tool.black]
+line-length = 88
+target-version = ["py310", "py311", "py312"]
+
+[tool.isort]
+profile = "black"
+known_first_party = ["kube_orchestrator"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+ignore_missing_imports = false
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "--cov=kube_orchestrator --cov-report=term-missing --cov-report=xml --cov-fail-under=80"
+markers = [
+    "unit: unit tests",
+    "integration: integration tests",
+    "slow: slow tests",
+]
+
+[tool.coverage.run]
+source = ["kube_orchestrator"]
+omit = [
+    "kube_orchestrator/_version.py",
+    "kube_orchestrator/cli/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version_provider = "scm"
+tag_format = "v$version"
+bump_message = "chore(release): bump version to $new_version"
+update_changelog_on_bump = true
+changelog_file = "CHANGELOG.md"
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM", "RUF"]
+ignore = ["E501"]
