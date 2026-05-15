@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Kubernetes
+kubeconfig
+*.kubeconfig
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Docs
+docs/_build/
+site/

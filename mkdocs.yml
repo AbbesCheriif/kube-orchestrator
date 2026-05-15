@@ -1,0 +1,60 @@
+site_name: kube-orchestrator
+site_description: A full-featured Python SDK for Kubernetes
+site_author: Abbes Cherif
+site_url: https://kube-orchestrator.readthedocs.io
+repo_url: https://github.com/AbbesCheriif/kube-orchestrator
+repo_name: AbbesCheriif/kube-orchestrator
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - content.code.copy
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_signature_annotations: true
+  - gen-files:
+      scripts:
+        - scripts/gen_ref_pages.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - API Reference: api/
+  - Guides: guides/
+  - Contributing: contributing.md
+  - Changelog: changelog.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - tables
