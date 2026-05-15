@@ -1,2 +1,3 @@
-# Exports: NodeManager, NamespaceManager, ResourceQuotaManager, LimitRangeManager,
-#          HPAManager, PodDisruptionBudgetManager, PriorityClassManager
+from kube_orchestrator.resources.cluster.namespace import NamespaceManager
+
+__all__ = ["NamespaceManager"]
