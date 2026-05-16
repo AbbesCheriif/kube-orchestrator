@@ -1,2 +1,5 @@
-# Exports: PodManager, DeploymentManager, StatefulSetManager,
-#          DaemonSetManager, ReplicaSetManager, JobManager, CronJobManager
+from kube_orchestrator.resources.workloads.pod import PodManager
+
+__all__ = [
+    "PodManager",
+]
