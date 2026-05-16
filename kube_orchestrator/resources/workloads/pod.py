@@ -241,6 +241,48 @@ class PodManager(BaseResourceManager[client.V1Pod]):
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
 
+    # ------------------------------------------------------------------
+    # Filtered list helpers
+    # ------------------------------------------------------------------
+
+    def list_pods_by_phase(
+        self,
+        phase: str,
+        namespace: str | None = None,
+        label_selector: str | None = None,
+    ) -> list[client.V1Pod]:
+        field_selector = f"status.phase={phase}"
+        return self.list_pods(namespace, label_selector, field_selector)
+
+    def list_running_pods(
+        self,
+        namespace: str | None = None,
+        label_selector: str | None = None,
+    ) -> list[client.V1Pod]:
+        return self.list_pods_by_phase("Running", namespace, label_selector)
+
+    def list_failed_pods(
+        self,
+        namespace: str | None = None,
+        label_selector: str | None = None,
+    ) -> list[client.V1Pod]:
+        return self.list_pods_by_phase("Failed", namespace, label_selector)
+
+    def list_pending_pods(
+        self,
+        namespace: str | None = None,
+        label_selector: str | None = None,
+    ) -> list[client.V1Pod]:
+        return self.list_pods_by_phase("Pending", namespace, label_selector)
+
+    def list_pods_on_node(
+        self,
+        node_name: str,
+        namespace: str | None = None,
+        label_selector: str | None = None,
+    ) -> list[client.V1Pod]:
+        return self.list_pods(namespace, label_selector, node_name=node_name)
+
     def attach_ephemeral_container(
         self,
         name: str,
