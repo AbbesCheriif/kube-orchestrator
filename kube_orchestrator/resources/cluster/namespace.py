@@ -11,6 +11,8 @@ from kubernetes.client.rest import ApiException
 from kube_orchestrator.core.exceptions import ResourceNotFoundError, parse_api_exception
 from kube_orchestrator.resources.base import BaseResourceManager
 from kube_orchestrator.resources.helpers import build_metadata
+from kube_orchestrator.resources.cluster.resource_quota import ResourceQuotaManager
+from kube_orchestrator.resources.cluster.limit_range import LimitRangeManager
 
 
 class NamespaceManager(BaseResourceManager[V1Namespace]):
@@ -131,3 +133,86 @@ class NamespaceManager(BaseResourceManager[V1Namespace]):
             return usage
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
+
+    def get_all_resources(self, name: str) -> dict[str, list]:
+        """Return all namespaced resources grouped by type.
+
+        Covers workloads, services, configmaps, secrets, and PVCs.
+        Networking and storage managers return empty lists until those
+        modules are implemented in later days.
+        """
+        api = self._get_api()
+        result: dict[str, list] = {
+            "pods": [],
+            "deployments": [],
+            "statefulsets": [],
+            "daemonsets": [],
+            "replicasets": [],
+            "jobs": [],
+            "cronjobs": [],
+            "services": [],
+            "configmaps": [],
+            "secrets": [],
+            "persistentvolumeclaims": [],
+            "resourcequotas": [],
+            "limitranges": [],
+        }
+        try:
+            result["pods"] = api.list_namespaced_pod(namespace=name).items
+            result["services"] = api.list_namespaced_service(namespace=name).items
+            result["configmaps"] = api.list_namespaced_config_map(namespace=name).items
+            result["secrets"] = api.list_namespaced_secret(namespace=name).items
+            result["persistentvolumeclaims"] = api.list_namespaced_persistent_volume_claim(namespace=name).items
+            result["resourcequotas"] = api.list_namespaced_resource_quota(namespace=name).items
+            result["limitranges"] = api.list_namespaced_limit_range(namespace=name).items
+
+            apps_api = self.client.apps_v1
+            result["deployments"] = apps_api.list_namespaced_deployment(namespace=name).items
+            result["statefulsets"] = apps_api.list_namespaced_stateful_set(namespace=name).items
+            result["daemonsets"] = apps_api.list_namespaced_daemon_set(namespace=name).items
+            result["replicasets"] = apps_api.list_namespaced_replica_set(namespace=name).items
+
+            batch_api = self.client.batch_v1
+            result["jobs"] = batch_api.list_namespaced_job(namespace=name).items
+            result["cronjobs"] = batch_api.list_namespaced_cron_job(namespace=name).items
+        except ApiException as exc:
+            raise parse_api_exception(exc) from exc
+        return result
+
+    def clone_namespace_config(self, source: str, dest: str) -> None:
+        """Copy ResourceQuotas and LimitRanges from *source* namespace to *dest*."""
+        quota_mgr = ResourceQuotaManager(client=self.client, default_namespace=source)
+        lr_mgr = LimitRangeManager(client=self.client, default_namespace=source)
+
+        for quota in quota_mgr.list_quotas(namespace=source):
+            spec = quota.spec
+            hard = dict(spec.hard) if spec and spec.hard else {}
+            scopes = list(spec.scopes) if spec and spec.scopes else None
+            scope_selector = spec.scope_selector.to_dict() if spec and spec.scope_selector else None
+            try:
+                quota_mgr.create_quota(
+                    name=quota.metadata.name,
+                    namespace=dest,
+                    hard=hard,
+                    scopes=scopes,
+                    scope_selector=scope_selector,
+                )
+            except Exception:
+                pass
+
+        for lr in lr_mgr.list_limit_ranges(namespace=source):
+            spec_lr = lr.spec
+            limits = [item.to_dict() for item in (spec_lr.limits or [])] if spec_lr else []
+            try:
+                lr_mgr.create_limit_range(
+                    name=lr.metadata.name,
+                    namespace=dest,
+                    limits=limits,
+                )
+            except Exception:
+                pass
+
+    def get_resource_summary(self, name: str) -> dict[str, int]:
+        """Return a condensed count of each resource type in the namespace."""
+        all_resources = self.get_all_resources(name)
+        return {kind: len(items) for kind, items in all_resources.items()}
