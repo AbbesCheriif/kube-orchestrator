@@ -138,6 +138,80 @@ class NodeManager(BaseResourceManager[V1Node]):
         }
 
 
+    def cordon(self, name: str) -> V1Node:
+        return self.patch(name, {"spec": {"unschedulable": True}})
+
+    def uncordon(self, name: str) -> V1Node:
+        return self.patch(name, {"spec": {"unschedulable": False}})
+
+    def drain(
+        self,
+        name: str,
+        ignore_daemonsets: bool = True,
+        delete_emptydir_data: bool = False,
+        force: bool = False,
+        grace_period_seconds: int | None = None,
+        timeout_seconds: int = 300,
+        dry_run: bool = False,
+    ) -> list[str]:
+        self.cordon(name)
+        pods = self.get_pods(name)
+        evicted: list[str] = []
+        for pod in pods:
+            owner_kinds = [
+                ref.kind for ref in (pod.metadata.owner_references or [])
+            ]
+            if "DaemonSet" in owner_kinds and ignore_daemonsets:
+                continue
+            if not force and not owner_kinds:
+                continue
+            if not dry_run:
+                self.evict_pod(
+                    pod.metadata.name,
+                    pod.metadata.namespace,
+                    grace_period_seconds,
+                )
+            evicted.append(f"{pod.metadata.namespace}/{pod.metadata.name}")
+        return evicted
+
+    def evict_pod(
+        self,
+        pod_name: str,
+        namespace: str,
+        grace_period_seconds: int | None = None,
+    ) -> None:
+        body: dict[str, Any] = {
+            "apiVersion": "policy/v1",
+            "kind": "Eviction",
+            "metadata": {"name": pod_name, "namespace": namespace},
+        }
+        if grace_period_seconds is not None:
+            body["deleteOptions"] = {"gracePeriodSeconds": grace_period_seconds}
+        self.client.core_v1().create_namespaced_pod_eviction(
+            pod_name, namespace, body
+        )
+
+    def wait_for_drain(self, name: str, timeout_seconds: int = 300) -> bool:
+        import time
+
+        deadline = time.time() + timeout_seconds
+        while time.time() < deadline:
+            pods = self.get_pods(name)
+            non_daemon = [
+                p
+                for p in pods
+                if "DaemonSet"
+                not in [r.kind for r in (p.metadata.owner_references or [])]
+            ]
+            if not non_daemon:
+                return True
+            time.sleep(5)
+        return False
+
+    def get_cordoned_nodes(self) -> list[V1Node]:
+        return [n for n in self.list_nodes() if bool(n.spec.unschedulable)]
+
+
 def _parse_cpu(value: str) -> int:
     if value.endswith("m"):
         return int(value[:-1])
