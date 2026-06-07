@@ -211,6 +211,63 @@ class NodeManager(BaseResourceManager[V1Node]):
     def get_cordoned_nodes(self) -> list[V1Node]:
         return [n for n in self.list_nodes() if bool(n.spec.unschedulable)]
 
+    # ── Taint management ────────────────────────────────────────────────
+
+    def add_taint(
+        self,
+        name: str,
+        key: str,
+        value: str | None,
+        effect: str,
+    ) -> V1Node:
+        node = self.get_node(name)
+        taints: list[dict[str, Any]] = [
+            {"key": t.key, "value": t.value, "effect": t.effect}
+            for t in (node.spec.taints or [])
+            if not (t.key == key and t.effect == effect)
+        ]
+        taint: dict[str, Any] = {"key": key, "effect": effect}
+        if value is not None:
+            taint["value"] = value
+        taints.append(taint)
+        return self.patch(name, {"spec": {"taints": taints}})
+
+    def remove_taint(
+        self, name: str, key: str, effect: str | None = None
+    ) -> V1Node:
+        node = self.get_node(name)
+        taints = [
+            {"key": t.key, "value": t.value, "effect": t.effect}
+            for t in (node.spec.taints or [])
+            if not (t.key == key and (effect is None or t.effect == effect))
+        ]
+        return self.patch(name, {"spec": {"taints": taints}})
+
+    def get_taints(self, name: str) -> list[dict[str, Any]]:
+        node = self.get_node(name)
+        return [
+            {"key": t.key, "value": t.value, "effect": t.effect}
+            for t in (node.spec.taints or [])
+        ]
+
+    def has_taint(self, name: str, key: str, effect: str | None = None) -> bool:
+        for taint in self.get_taints(name):
+            if taint["key"] == key and (effect is None or taint["effect"] == effect):
+                return True
+        return False
+
+    def list_nodes_with_taint(
+        self, key: str, effect: str | None = None
+    ) -> list[V1Node]:
+        return [
+            n
+            for n in self.list_nodes()
+            if self.has_taint(n.metadata.name, key, effect)
+        ]
+
+    def remove_all_taints(self, name: str) -> V1Node:
+        return self.patch(name, {"spec": {"taints": []}})
+
 
 def _parse_cpu(value: str) -> int:
     if value.endswith("m"):
