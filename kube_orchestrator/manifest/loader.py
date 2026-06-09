@@ -59,3 +59,43 @@ def detect_encoding(path: str) -> str:
     if raw.startswith(b"\xef\xbb\xbf"):
         return "utf-8-sig"
     return "utf-8"
+
+
+def load_directory(
+    path: str,
+    recursive: bool = False,
+    extensions: list[str] | None = None,
+    exclude_patterns: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Load all matching manifest files from a directory.
+
+    Args:
+        path: Directory to scan.
+        recursive: Whether to descend into sub-directories.
+        extensions: File extensions to include (default: .yaml, .yml).
+        exclude_patterns: Glob patterns for files to skip.
+    """
+    exts = set(extensions or [".yaml", ".yml"])
+    exclude = set(exclude_patterns or [])
+    dir_path = Path(path)
+    manifests: list[dict[str, Any]] = []
+
+    iter_fn = dir_path.rglob if recursive else dir_path.glob
+    for file_path in sorted(iter_fn("*")):
+        if not file_path.is_file():
+            continue
+        if file_path.suffix not in exts:
+            continue
+        if any(file_path.match(pat) for pat in exclude):
+            continue
+        manifests.extend(load_file(str(file_path)))
+
+    return manifests
+
+
+def load_multiple_files(paths: list[str]) -> list[dict[str, Any]]:
+    """Load manifests from a list of file paths, preserving document order."""
+    manifests: list[dict[str, Any]] = []
+    for p in paths:
+        manifests.extend(load_file(p))
+    return manifests
