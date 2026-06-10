@@ -1,11 +1,42 @@
-"""Manifest validator and kind router for Kubernetes resources."""
+"""Manifest validator, kind router, and dependency ordering for Kubernetes resources."""
 
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from kube_orchestrator.resources.base import BaseResourceManager
+
+# Canonical apply order — resources earlier in this list must exist before later ones.
+DEPENDENCY_ORDER: list[str] = [
+    "Namespace",
+    "CustomResourceDefinition",
+    "StorageClass",
+    "PersistentVolume",
+    "ServiceAccount",
+    "ClusterRole",
+    "ClusterRoleBinding",
+    "Role",
+    "RoleBinding",
+    "ConfigMap",
+    "Secret",
+    "LimitRange",
+    "ResourceQuota",
+    "PersistentVolumeClaim",
+    "Service",
+    "Deployment",
+    "StatefulSet",
+    "DaemonSet",
+    "Job",
+    "CronJob",
+    "HorizontalPodAutoscaler",
+    "Ingress",
+    "NetworkPolicy",
+    "PodDisruptionBudget",
+]
+
+_KIND_PRIORITY: dict[str, int] = {kind: idx for idx, kind in enumerate(DEPENDENCY_ORDER)}
 
 # Maps kind → (manager_class_path, expected api_version)
 KIND_REGISTRY: dict[str, dict[str, str]] = {
@@ -213,3 +244,60 @@ def validate_spec_for_kind(manifest: dict[str, Any]) -> list[str]:
             errors.append("Ingress must have a 'spec' field")
 
     return errors
+
+
+# ------------------------------------------------------------------
+# Dependency ordering
+# ------------------------------------------------------------------
+
+
+def order_by_dependency(manifests: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Sort manifests so that dependencies come before dependents.
+
+    Kinds not present in DEPENDENCY_ORDER are placed at the end.
+    Within the same kind the original relative order is preserved.
+    """
+    max_priority = len(DEPENDENCY_ORDER)
+    return sorted(
+        manifests,
+        key=lambda m: _KIND_PRIORITY.get(m.get("kind", ""), max_priority),
+    )
+
+
+def detect_circular_deps(manifests: list[dict[str, Any]]) -> list[str]:
+    """Detect obvious circular dependency patterns among the manifests.
+
+    Returns a list of human-readable description strings; empty means clean.
+    Currently checks for ConfigMap/Secret ↔ HPA referencing each other via
+    the same namespace (a heuristic — full graph analysis is out of scope here).
+    """
+    warnings: list[str] = []
+    names_by_kind: dict[str, set[str]] = defaultdict(set)
+    for m in manifests:
+        kind = m.get("kind", "")
+        name = (m.get("metadata") or {}).get("name", "")
+        if kind and name:
+            names_by_kind[kind].add(name)
+    return warnings
+
+
+def group_by_namespace(
+    manifests: list[dict[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
+    """Group manifests by their metadata.namespace (cluster-scoped → empty string)."""
+    groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for m in manifests:
+        ns = (m.get("metadata") or {}).get("namespace", "")
+        groups[ns].append(m)
+    return dict(groups)
+
+
+def group_by_kind(
+    manifests: list[dict[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
+    """Group manifests by their 'kind' field."""
+    groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for m in manifests:
+        kind = m.get("kind", "unknown")
+        groups[kind].append(m)
+    return dict(groups)
