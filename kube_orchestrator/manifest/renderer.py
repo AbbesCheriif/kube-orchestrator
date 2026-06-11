@@ -153,6 +153,59 @@ def override_values(
 
 
 # ------------------------------------------------------------------
+# Public helpers registry (for introspection and docs)
+# ------------------------------------------------------------------
+
+BUILTIN_FILTERS: dict[str, str] = {
+    "b64encode": "Base64-encode a string value",
+    "b64decode": "Base64-decode a string value",
+    "sha256": "Return the SHA-256 hex digest of a string",
+    "to_json": "Serialize a value to a JSON string",
+    "from_json": "Deserialize a JSON string",
+    "to_yaml": "Serialize a value to a YAML string",
+    "indent": "Indent each line of a string by N spaces",
+    "quote": 'Wrap a value in double quotes: "value"',
+    "trim_suffix": "Remove a suffix from a string if present",
+    "trim_prefix": "Remove a prefix from a string if present",
+    "upper": "Convert string to UPPERCASE",
+    "lower": "Convert string to lowercase",
+    "title": "Convert string to Title Case",
+}
+
+BUILTIN_FUNCTIONS: dict[str, str] = {
+    "required": "Raise an error if value is None or undefined",
+    "default": "Return a default value when the input is None/undefined",
+}
+
+
+def get_available_filters() -> dict[str, str]:
+    """Return a mapping of all built-in Jinja2 filter names to their descriptions."""
+    return dict(BUILTIN_FILTERS)
+
+
+def get_available_functions() -> dict[str, str]:
+    """Return a mapping of all built-in Jinja2 global function names to descriptions."""
+    return dict(BUILTIN_FUNCTIONS)
+
+
+def render_directory(
+    path: str,
+    values: dict[str, Any],
+    recursive: bool = False,
+    extensions: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Render all template files in a directory and return parsed manifests."""
+    exts = set(extensions or [".yaml", ".yml", ".j2"])
+    dir_path = Path(path)
+    manifests: list[dict[str, Any]] = []
+    iter_fn = dir_path.rglob if recursive else dir_path.glob
+    for file_path in sorted(iter_fn("*")):
+        if file_path.is_file() and file_path.suffix in exts:
+            manifests.extend(render_file(str(file_path), values))
+    return manifests
+
+
+# ------------------------------------------------------------------
 # Internal helpers
 # ------------------------------------------------------------------
 
