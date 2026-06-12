@@ -98,3 +98,115 @@ class ManifestApplier:
         for key, value in diff.get("removed", {}).items():
             lines.append(f"- {key}: {value}")
         return "\n".join(lines) if lines else "(no spec changes)"
+
+    # ------------------------------------------------------------------
+    # Apply operations
+    # ------------------------------------------------------------------
+
+    def apply_manifest(
+        self,
+        manifest: dict[str, Any],
+        namespace: str | None = None,
+    ) -> dict[str, Any]:
+        """Create or update a single manifest idempotently."""
+        if namespace:
+            manifest = copy.deepcopy(manifest)
+            manifest.setdefault("metadata", {})["namespace"] = namespace
+
+        live = self.get_live_resource(manifest)
+        action = self.decide_action(live, manifest)
+
+        if self.dry_run:
+            return {"action": action, "manifest": manifest, "dry_run": True}
+
+        manager_cls = route_by_kind(manifest)
+        if manager_cls is None:
+            raise ValueError(f"Unknown kind: {manifest.get('kind')}")
+        manager = manager_cls(self.client)
+        meta = manifest.get("metadata", {})
+        name = meta.get("name", "")
+        ns = meta.get("namespace", "default")
+
+        if action == "create":
+            result = manager.create(manifest, ns)
+        elif action == "replace":
+            manager.delete(name, ns)
+            result = manager.create(manifest, ns)
+        elif action == "update":
+            result = manager.update(name, manifest, ns)
+        else:
+            return {"action": "skip", "name": name, "namespace": ns}
+
+        obj = result.to_dict() if hasattr(result, "to_dict") else dict(result)
+        return {"action": action, "resource": obj}
+
+    def apply_file(
+        self,
+        path: str,
+        namespace: str | None = None,
+        values: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Load, optionally render, then apply all manifests in a file."""
+        from kube_orchestrator.manifest.loader import load_file
+        from kube_orchestrator.manifest.renderer import render_file
+
+        if values is not None:
+            manifests = render_file(path, values)
+        else:
+            manifests = load_file(path)
+        return [self.apply_manifest(m, namespace) for m in manifests]
+
+    def apply_directory(
+        self,
+        path: str,
+        namespace: str | None = None,
+        recursive: bool = False,
+        values: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Apply all manifest files found in a directory."""
+        from kube_orchestrator.manifest.loader import load_directory
+        from kube_orchestrator.manifest.renderer import render_directory
+        from kube_orchestrator.manifest.validator import order_by_dependency
+
+        if values is not None:
+            manifests = render_directory(path, values, recursive=recursive)
+        else:
+            manifests = load_directory(path, recursive=recursive)
+
+        ordered = order_by_dependency(manifests)
+        return [self.apply_manifest(m, namespace) for m in ordered]
+
+    def dry_run_file(
+        self,
+        path: str,
+        values: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return the planned actions for a file without applying them."""
+        original_dry_run = self.dry_run
+        self.dry_run = True
+        try:
+            return self.apply_file(path, values=values)
+        finally:
+            self.dry_run = original_dry_run
+
+    def print_plan(self, manifests: list[dict[str, Any]]) -> None:
+        """Print the planned actions for a list of manifests."""
+        for m in manifests:
+            live = self.get_live_resource(m)
+            action = self.decide_action(live, m)
+            kind = m.get("kind", "?")
+            name = (m.get("metadata") or {}).get("name", "?")
+            ns = (m.get("metadata") or {}).get("namespace", "")
+            target = f"{kind}/{name}" + (f" ({ns})" if ns else "")
+            print(f"  {action.upper():8s} {target}")
+
+    def confirm_apply(self, manifests: list[dict[str, Any]]) -> bool:
+        """Print the plan and ask for interactive confirmation. Returns True if confirmed."""
+        self.print_plan(manifests)
+        answer = input("\nApply the above changes? [y/N] ").strip().lower()
+        return answer in ("y", "yes")
+
+    def is_already_applied(self, manifest: dict[str, Any]) -> bool:
+        """Return True if the manifest is already applied with no spec drift."""
+        live = self.get_live_resource(manifest)
+        return self.decide_action(live, manifest) == "skip"
