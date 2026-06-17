@@ -67,7 +67,7 @@ class AccessValidator:
         name: str,
         namespace: str | None = None,
     ) -> dict[str, Any]:
-        rbac = self._client.rbac_v1()
+        rbac = self._client.rbac_v1
         permissions: dict[str, Any] = {"roles": [], "cluster_roles": []}
 
         if namespace:
@@ -103,7 +103,7 @@ class AccessValidator:
     def get_who_can(
         self, verb: str, resource: str, namespace: str
     ) -> list[dict[str, Any]]:
-        rbac = self._client.rbac_v1()
+        rbac = self._client.rbac_v1
         subjects: list[dict[str, Any]] = []
         bindings = rbac.list_namespaced_role_binding(namespace)
         for rb in bindings.items:

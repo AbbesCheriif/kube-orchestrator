@@ -8,7 +8,7 @@ from typing import Any, Callable, Generic, TypeVar
 
 from kubernetes import client, watch
 from kubernetes.client.rest import ApiException
-from structlog.types import BoundLogger
+from typing import Any as BoundLogger
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.exceptions import (
@@ -26,11 +26,11 @@ class BaseResourceManager(ABC, Generic[T]):
 
     def __init__(
         self,
-        kube_client: KubeClient,
+        kube_client: KubeClient | None = None,
         default_namespace: str = "default",
         dry_run: bool = False,
     ) -> None:
-        self.client = kube_client
+        self.client = kube_client or KubeClient.get_instance()
         self.logger: BoundLogger = get_logger(self.__class__.__name__)
         self.default_namespace = default_namespace
         self.dry_run: str | None = "All" if dry_run else None
@@ -154,16 +154,9 @@ class BaseResourceManager(ABC, Generic[T]):
     ) -> T:
         """Patch a resource. patch_type: 'strategic', 'merge', or 'json'."""
         ns = namespace or self.default_namespace
-        content_type_map = {
-            "strategic": "application/strategic-merge-patch+json",
-            "merge": "application/merge-patch+json",
-            "json": "application/json-patch+json",
-        }
-        content_type = content_type_map.get(patch_type, content_type_map["strategic"])
         kwargs: dict[str, Any] = {
             "name": name,
             "body": patch,
-            "content_type": content_type,
         }
         if self.dry_run:
             kwargs["dry_run"] = self.dry_run

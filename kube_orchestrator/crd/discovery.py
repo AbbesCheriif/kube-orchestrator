@@ -59,7 +59,7 @@ class APIDiscovery:
     def discover_all_crds(self) -> list[dict[str, Any]]:
         """Return a summary of every CRD installed in the cluster."""
         try:
-            api = self.client.api_extensions_v1()
+            api = self.client.api_extensions_v1
             result = api.list_custom_resource_definition()
             crds: list[dict[str, Any]] = []
             for crd in result.items:

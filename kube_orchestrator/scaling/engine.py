@@ -126,15 +126,15 @@ class ScalingEngine:
         patch = {"spec": {"replicas": replicas}}
         kind_lower = kind.lower()
         if kind_lower == "deployment":
-            self._client.apps_v1().patch_namespaced_deployment(
+            self._client.apps_v1.patch_namespaced_deployment(
                 target_name, namespace, patch
             )
         elif kind_lower == "statefulset":
-            self._client.apps_v1().patch_namespaced_stateful_set(
+            self._client.apps_v1.patch_namespaced_stateful_set(
                 target_name, namespace, patch
             )
         elif kind_lower == "replicaset":
-            self._client.apps_v1().patch_namespaced_replica_set(
+            self._client.apps_v1.patch_namespaced_replica_set(
                 target_name, namespace, patch
             )
         else:
@@ -150,15 +150,15 @@ class ScalingEngine:
     def _get_replicas(self, target_name: str, namespace: str, kind: str) -> int:
         kind_lower = kind.lower()
         if kind_lower == "deployment":
-            obj = self._client.apps_v1().read_namespaced_deployment(
+            obj = self._client.apps_v1.read_namespaced_deployment(
                 target_name, namespace
             )
         elif kind_lower == "statefulset":
-            obj = self._client.apps_v1().read_namespaced_stateful_set(
+            obj = self._client.apps_v1.read_namespaced_stateful_set(
                 target_name, namespace
             )
         elif kind_lower == "replicaset":
-            obj = self._client.apps_v1().read_namespaced_replica_set(
+            obj = self._client.apps_v1.read_namespaced_replica_set(
                 target_name, namespace
             )
         else:

@@ -31,7 +31,7 @@ class AutoRollback:
         snapshots = self._snapshot_store.list_snapshots(deployment_name, namespace)
         if not snapshots:
             try:
-                deploy = self._client.apps_v1().read_namespaced_deployment(
+                deploy = self._client.apps_v1.read_namespaced_deployment(
                     deployment_name, namespace
                 )
                 revision = int(
@@ -59,7 +59,7 @@ class AutoRollback:
             revision=snap.revision,
         )
         try:
-            self._client.apps_v1().replace_namespaced_deployment(
+            self._client.apps_v1.replace_namespaced_deployment(
                 snap.name, snap.namespace, snap.manifest
             )
         except Exception as exc:
@@ -79,7 +79,7 @@ class AutoRollback:
             revision=revision,
         )
         try:
-            replica_sets = self._client.apps_v1().list_namespaced_replica_set(
+            replica_sets = self._client.apps_v1.list_namespaced_replica_set(
                 namespace,
                 label_selector=f"app={deployment_name}",
             )
@@ -109,7 +109,7 @@ class AutoRollback:
                     else {}
                 }
             }
-            self._client.apps_v1().patch_namespaced_deployment(
+            self._client.apps_v1.patch_namespaced_deployment(
                 deployment_name, namespace, patch
             )
         except Exception as exc:
@@ -171,6 +171,6 @@ class AutoRollback:
                 "message": f"{'Success' if success else 'Failed'}: {reason}",
                 "type": "Normal" if success else "Warning",
             }
-            self._client.core_v1().create_namespaced_event(namespace, body)
+            self._client.core_v1.create_namespaced_event(namespace, body)
         except Exception:
             pass

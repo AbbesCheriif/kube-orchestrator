@@ -11,7 +11,7 @@ class MetricsClient:
 
     def get_pod_metrics(self, name: str, namespace: str) -> dict:
         try:
-            result = self._client.custom_objects().get_namespaced_custom_object(
+            result = self._client.custom_objects.get_namespaced_custom_object(
                 group="metrics.k8s.io",
                 version="v1beta1",
                 namespace=namespace,
@@ -25,7 +25,7 @@ class MetricsClient:
 
     def get_node_metrics(self, name: str) -> dict:
         try:
-            result = self._client.custom_objects().get_cluster_custom_object(
+            result = self._client.custom_objects.get_cluster_custom_object(
                 group="metrics.k8s.io",
                 version="v1beta1",
                 plural="nodes",
@@ -48,7 +48,7 @@ class MetricsClient:
             }
             if label_selector:
                 kwargs["label_selector"] = label_selector
-            result = self._client.custom_objects().list_namespaced_custom_object(**kwargs)
+            result = self._client.custom_objects.list_namespaced_custom_object(**kwargs)
             return [self._parse_pod_metrics(item) for item in result.get("items", [])]
         except Exception as exc:
             self._logger.warning("list_pod_metrics_failed", namespace=namespace, error=str(exc))
@@ -56,7 +56,7 @@ class MetricsClient:
 
     def list_node_metrics(self) -> list:
         try:
-            result = self._client.custom_objects().list_cluster_custom_object(
+            result = self._client.custom_objects.list_cluster_custom_object(
                 group="metrics.k8s.io",
                 version="v1beta1",
                 plural="nodes",

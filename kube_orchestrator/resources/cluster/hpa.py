@@ -18,20 +18,23 @@ class HPAManager(BaseResourceManager[client.V2HorizontalPodAutoscaler]):
 
     def __init__(
         self,
-        kube_client: KubeClient,
+        kube_client: "KubeClient | None" = None,
         default_namespace: str = "default",
         dry_run: bool = False,
     ) -> None:
         super().__init__(kube_client, default_namespace, dry_run)
 
     def _get_api(self) -> client.AutoscalingV2Api:
-        return self.client.autoscaling_v2()
+        return self.client.autoscaling_v2
 
     def _kind(self) -> str:
         return "HorizontalPodAutoscaler"
 
     def _api_version(self) -> str:
         return "autoscaling/v2"
+
+    def _resource_name(self) -> str:
+        return "horizontal_pod_autoscaler"
 
     # ------------------------------------------------------------------
     # CRUD

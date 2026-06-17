@@ -21,7 +21,7 @@ class CRDInstaller:
         self.client = kube_client
 
     def _api(self) -> client.ApiextensionsV1Api:
-        return self.client.api_extensions_v1()
+        return self.client.api_extensions_v1
 
     # ------------------------------------------------------------------
     # Install / uninstall

@@ -14,7 +14,7 @@ class RolloutDetector:
 
     def detect_failed_rollout(self, deployment_name: str, namespace: str) -> bool:
         try:
-            deploy = self._client.apps_v1().read_namespaced_deployment(
+            deploy = self._client.apps_v1.read_namespaced_deployment(
                 deployment_name, namespace
             )
             for cond in (deploy.status.conditions or []):
@@ -37,7 +37,7 @@ class RolloutDetector:
 
     def get_failure_reason(self, deployment_name: str, namespace: str) -> str | None:
         try:
-            deploy = self._client.apps_v1().read_namespaced_deployment(
+            deploy = self._client.apps_v1.read_namespaced_deployment(
                 deployment_name, namespace
             )
             for cond in (deploy.status.conditions or []):
@@ -57,7 +57,7 @@ class RolloutDetector:
         self, deployment_name: str, namespace: str, timeout_seconds: int = 300
     ) -> bool:
         try:
-            deploy = self._client.apps_v1().read_namespaced_deployment(
+            deploy = self._client.apps_v1.read_namespaced_deployment(
                 deployment_name, namespace
             )
             for cond in (deploy.status.conditions or []):
@@ -78,7 +78,7 @@ class RolloutDetector:
     def check_pod_errors(self, deployment_name: str, namespace: str) -> list[dict]:
         errors: list[dict] = []
         try:
-            deploy = self._client.apps_v1().read_namespaced_deployment(
+            deploy = self._client.apps_v1.read_namespaced_deployment(
                 deployment_name, namespace
             )
             selector = deploy.spec.selector
@@ -87,7 +87,7 @@ class RolloutDetector:
             label_str = ",".join(
                 f"{k}={v}" for k, v in selector.match_labels.items()
             )
-            pods = self._client.core_v1().list_namespaced_pod(
+            pods = self._client.core_v1.list_namespaced_pod(
                 namespace, label_selector=label_str
             )
             for pod in pods.items:
@@ -129,7 +129,7 @@ class RolloutDetector:
         def _run() -> None:
             try:
                 for event in w.stream(
-                    self._client.apps_v1().list_namespaced_deployment,
+                    self._client.apps_v1.list_namespaced_deployment,
                     namespace=namespace,
                     field_selector=f"metadata.name={deployment_name}",
                 ):

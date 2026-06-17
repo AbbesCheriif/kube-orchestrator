@@ -11,7 +11,7 @@ from kube_orchestrator.resources.base import BaseResourceManager
 class SecretManager(BaseResourceManager[V1Secret]):
 
     def _get_api(self):
-        return self.client.core_v1()
+        return self.client.core_v1
 
     def _kind(self) -> str:
         return "Secret"
