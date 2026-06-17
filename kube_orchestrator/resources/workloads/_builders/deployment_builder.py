@@ -92,8 +92,15 @@ class DeploymentBuilder:
 
     def with_pod_template(self, pod_builder: PodBuilder) -> "DeploymentBuilder":
         pod_manifest = pod_builder.build()
+        raw_meta = pod_manifest.get("metadata", {})
+        # Template metadata must have labels (matching selector), not name/namespace
+        template_meta: dict = {}
+        if raw_meta.get("labels"):
+            template_meta["labels"] = raw_meta["labels"]
+        if raw_meta.get("annotations"):
+            template_meta["annotations"] = raw_meta["annotations"]
         self._pod_template = {
-            "metadata": pod_manifest.get("metadata", {}),
+            "metadata": template_meta,
             "spec": pod_manifest.get("spec", {}),
         }
         return self
@@ -118,7 +125,11 @@ class DeploymentBuilder:
         if self._strategy:
             spec["strategy"] = self._strategy
         if self._pod_template:
-            spec["template"] = self._pod_template
+            template = dict(self._pod_template)
+            # Ensure template metadata has labels matching selector
+            if self._selector.get("matchLabels") and not template.get("metadata", {}).get("labels"):
+                template.setdefault("metadata", {})["labels"] = self._selector["matchLabels"]
+            spec["template"] = template
 
         return {
             "apiVersion": "apps/v1",
