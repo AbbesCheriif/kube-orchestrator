@@ -21,7 +21,7 @@ class PodManager(BaseResourceManager[client.V1Pod]):
 
     def __init__(
         self,
-        kube_client: KubeClient,
+        kube_client: "KubeClient | None" = None,
         default_namespace: str = "default",
         dry_run: bool = False,
     ) -> None:
@@ -47,7 +47,9 @@ class PodManager(BaseResourceManager[client.V1Pod]):
         namespace: str | None = None,
     ) -> client.V1Pod:
         body = builder.build() if builder else manifest
-        return self.create(body, namespace)
+        ns = namespace or self.default_namespace
+        body.setdefault("metadata", {})["namespace"] = ns
+        return self.create(body, ns)
 
     def get_pod(self, name: str, namespace: str | None = None) -> client.V1Pod:
         return self.get(name, namespace)

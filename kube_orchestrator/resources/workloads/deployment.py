@@ -22,7 +22,7 @@ class DeploymentManager(BaseResourceManager[client.V1Deployment]):
 
     def __init__(
         self,
-        kube_client: KubeClient,
+        kube_client: "KubeClient | None" = None,
         default_namespace: str = "default",
         dry_run: bool = False,
     ) -> None:
@@ -48,7 +48,9 @@ class DeploymentManager(BaseResourceManager[client.V1Deployment]):
         namespace: str | None = None,
     ) -> client.V1Deployment:
         body = builder.build() if builder else manifest
-        return self.create(body, namespace)
+        ns = namespace or self.default_namespace
+        body.setdefault("metadata", {})["namespace"] = ns
+        return self.create(body, ns)
 
     def get_deployment(
         self, name: str, namespace: str | None = None
@@ -120,15 +122,16 @@ class DeploymentManager(BaseResourceManager[client.V1Deployment]):
         container_name: str = "",
         image: str = "",
     ) -> client.V1Deployment:
-        deployment = self.get_deployment(name, namespace)
-        containers = deployment.spec.template.spec.containers or []
-        for c in containers:
-            if c.name == container_name:
-                c.image = image
-                break
-        return self.update_deployment(
-            name, namespace, deployment.to_dict() if hasattr(deployment, "to_dict") else {}
-        )
+        patch_body = {
+            "spec": {
+                "template": {
+                    "spec": {
+                        "containers": [{"name": container_name, "image": image}]
+                    }
+                }
+            }
+        }
+        return self.patch_deployment(name, namespace, patch_body, "strategic")
 
     def set_env_var(
         self,

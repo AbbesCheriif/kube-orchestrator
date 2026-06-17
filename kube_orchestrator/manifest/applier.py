@@ -18,12 +18,12 @@ class ManifestApplier:
 
     def __init__(
         self,
-        client: KubeClient,
+        client: KubeClient | None = None,
         dry_run: bool = False,
         force: bool = False,
         server_side: bool = False,
     ) -> None:
-        self.client = client
+        self.client = client or KubeClient.get_instance()
         self.dry_run = dry_run
         self.force = force
         self.server_side = server_side
