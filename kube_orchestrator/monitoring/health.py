@@ -32,7 +32,7 @@ class ClusterHealthReporter:
 
     def check_node_health(self) -> dict:
         try:
-            nodes = self._client.core_v1().list_node()
+            nodes = self._client.core_v1.list_node()
         except Exception as exc:
             self._logger.error("node_health_check_failed", error=str(exc))
             return {"error": str(exc), "ready": 0, "not_ready": 0, "total": 0}
@@ -60,13 +60,13 @@ class ClusterHealthReporter:
     def check_control_plane(self) -> dict:
         result: dict = {"api_server": False, "scheduler": False, "controller_manager": False}
         try:
-            self._client.core_v1().list_namespace(limit=1)
+            self._client.core_v1.list_namespace(limit=1)
             result["api_server"] = True
         except Exception:
             pass
 
         try:
-            statuses = self._client.core_v1().list_component_status()
+            statuses = self._client.core_v1.list_component_status()
             for cs in statuses.items:
                 name = cs.metadata.name
                 healthy = any(
@@ -111,7 +111,7 @@ class ClusterHealthReporter:
             "pods": {"total": 0, "running": 0, "pending": 0, "failed": 0},
         }
         try:
-            pods = self._client.core_v1().list_namespaced_pod(namespace)
+            pods = self._client.core_v1.list_namespaced_pod(namespace)
             for pod in pods.items:
                 result["pods"]["total"] += 1
                 phase = (pod.status.phase or "Unknown").lower()
@@ -125,7 +125,7 @@ class ClusterHealthReporter:
             self._logger.warning("workload_health_pods_failed", namespace=namespace, error=str(exc))
 
         try:
-            deploys = self._client.apps_v1().list_namespaced_deployment(namespace)
+            deploys = self._client.apps_v1.list_namespaced_deployment(namespace)
             for d in deploys.items:
                 result["deployments"]["total"] += 1
                 desired = d.spec.replicas or 1
@@ -143,7 +143,7 @@ class ClusterHealthReporter:
         ready: list[str] = []
         not_ready: list[str] = []
         try:
-            pods = self._client.core_v1().list_namespaced_pod(namespace)
+            pods = self._client.core_v1.list_namespaced_pod(namespace)
             for pod in pods.items:
                 name = pod.metadata.name
                 pod_ready = False
@@ -163,7 +163,7 @@ class ClusterHealthReporter:
     def detect_crash_loops(self, namespace: str) -> list[dict]:
         crash_loops: list[dict] = []
         try:
-            pods = self._client.core_v1().list_namespaced_pod(namespace)
+            pods = self._client.core_v1.list_namespaced_pod(namespace)
             for pod in pods.items:
                 for cs in (pod.status.container_statuses or []):
                     if cs.restart_count and cs.restart_count >= 3:
@@ -189,7 +189,7 @@ class ClusterHealthReporter:
     def get_pending_pods(self, namespace: str) -> list[dict]:
         pending: list[dict] = []
         try:
-            pods = self._client.core_v1().list_namespaced_pod(
+            pods = self._client.core_v1.list_namespaced_pod(
                 namespace, field_selector="status.phase=Pending"
             )
             now = datetime.utcnow()
@@ -212,7 +212,7 @@ class ClusterHealthReporter:
     def get_failed_deployments(self, namespace: str) -> list[dict]:
         failed: list[dict] = []
         try:
-            deploys = self._client.apps_v1().list_namespaced_deployment(namespace)
+            deploys = self._client.apps_v1.list_namespaced_deployment(namespace)
             for d in deploys.items:
                 desired = d.spec.replicas or 1
                 available = d.status.available_replicas or 0
@@ -232,7 +232,7 @@ class ClusterHealthReporter:
     def get_oom_killed_pods(self, namespace: str) -> list[dict]:
         oom: list[dict] = []
         try:
-            pods = self._client.core_v1().list_namespaced_pod(namespace)
+            pods = self._client.core_v1.list_namespaced_pod(namespace)
             for pod in pods.items:
                 for cs in (pod.status.container_statuses or []):
                     terminated = None

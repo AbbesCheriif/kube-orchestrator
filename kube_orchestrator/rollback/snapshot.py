@@ -30,7 +30,7 @@ class SnapshotStore:
         return f"{namespace}/{deployment_name}"
 
     def take_snapshot(self, deployment_name: str, namespace: str) -> DeploymentSnapshot:
-        deploy = self._client.apps_v1().read_namespaced_deployment(
+        deploy = self._client.apps_v1.read_namespaced_deployment(
             deployment_name, namespace
         )
         revision = int(

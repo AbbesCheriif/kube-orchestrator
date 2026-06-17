@@ -34,7 +34,7 @@ class ResourceWatcher:
         callback: Callable[[str, dict], None] | None = None,
     ) -> None:
         self._start_watch(
-            list_func=self._client.core_v1().list_namespaced_pod,
+            list_func=self._client.core_v1.list_namespaced_pod,
             kwargs={"namespace": namespace, "label_selector": label_selector},
             timeout_seconds=timeout_seconds,
             callback=callback,
@@ -46,7 +46,7 @@ class ResourceWatcher:
         callback: Callable[[str, dict], None] | None = None,
     ) -> None:
         self._start_watch(
-            list_func=self._client.apps_v1().list_namespaced_deployment,
+            list_func=self._client.apps_v1.list_namespaced_deployment,
             kwargs={"namespace": namespace},
             timeout_seconds=0,
             callback=callback,
@@ -57,7 +57,7 @@ class ResourceWatcher:
         callback: Callable[[str, dict], None] | None = None,
     ) -> None:
         self._start_watch(
-            list_func=self._client.core_v1().list_node,
+            list_func=self._client.core_v1.list_node,
             kwargs={},
             timeout_seconds=0,
             callback=callback,
@@ -69,7 +69,7 @@ class ResourceWatcher:
         callback: Callable[[str, dict], None] | None = None,
     ) -> None:
         self._start_watch(
-            list_func=self._client.core_v1().list_namespaced_event,
+            list_func=self._client.core_v1.list_namespaced_event,
             kwargs={"namespace": namespace},
             timeout_seconds=0,
             callback=callback,
@@ -82,9 +82,9 @@ class ResourceWatcher:
         callback: Callable[[str, dict], None] | None = None,
     ) -> None:
         _resource_map = {
-            "pods": (self._client.core_v1().list_namespaced_pod, self._client.core_v1().list_pod_for_all_namespaces),
-            "deployments": (self._client.apps_v1().list_namespaced_deployment, self._client.apps_v1().list_deployment_for_all_namespaces),
-            "nodes": (None, self._client.core_v1().list_node),
+            "pods": (self._client.core_v1.list_namespaced_pod, self._client.core_v1.list_pod_for_all_namespaces),
+            "deployments": (self._client.apps_v1.list_namespaced_deployment, self._client.apps_v1.list_deployment_for_all_namespaces),
+            "nodes": (None, self._client.core_v1.list_node),
         }
         resource_type_lower = resource_type.lower()
         if resource_type_lower not in _resource_map:
