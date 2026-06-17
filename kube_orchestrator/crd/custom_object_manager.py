@@ -31,7 +31,7 @@ class CustomObjectManager:
         self.client = kube_client
 
     def _api(self) -> client.CustomObjectsApi:
-        return self.client.custom_objects()
+        return self.client.custom_objects
 
     # ------------------------------------------------------------------
     # CRUD

@@ -18,13 +18,13 @@ class RuntimeClassManager(BaseResourceManager[client.V1RuntimeClass]):
 
     def __init__(
         self,
-        kube_client: KubeClient,
+        kube_client: "KubeClient | None" = None,
         dry_run: bool = False,
     ) -> None:
         super().__init__(kube_client, "", dry_run)
 
     def _get_api(self) -> client.NodeV1Api:
-        return self.client.node_v1()
+        return self.client.node_v1
 
     def _kind(self) -> str:
         return "RuntimeClass"
@@ -69,14 +69,14 @@ class LeaseManager(BaseResourceManager[client.V1Lease]):
 
     def __init__(
         self,
-        kube_client: KubeClient,
+        kube_client: "KubeClient | None" = None,
         default_namespace: str = "kube-system",
         dry_run: bool = False,
     ) -> None:
         super().__init__(kube_client, default_namespace, dry_run)
 
     def _get_api(self) -> client.CoordinationV1Api:
-        return self.client.coordination_v1()
+        return self.client.coordination_v1
 
     def _kind(self) -> str:
         return "Lease"

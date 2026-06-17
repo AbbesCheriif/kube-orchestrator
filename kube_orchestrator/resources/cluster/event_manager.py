@@ -18,14 +18,14 @@ class EventManager(BaseResourceManager[Any]):
 
     def __init__(
         self,
-        kube_client: KubeClient,
+        kube_client: "KubeClient | None" = None,
         default_namespace: str = "default",
         dry_run: bool = False,
     ) -> None:
         super().__init__(kube_client, default_namespace, dry_run)
 
     def _get_api(self) -> client.CoreV1Api:
-        return self.client.core_v1()
+        return self.client.core_v1
 
     def _kind(self) -> str:
         return "Event"

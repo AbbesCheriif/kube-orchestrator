@@ -13,13 +13,16 @@ from kube_orchestrator.resources.base import BaseResourceManager
 
 class RoleBindingManager(BaseResourceManager[V1RoleBinding]):
     def _get_api(self) -> RbacAuthorizationV1Api:
-        return self.client.rbac_v1()
+        return self.client.rbac_v1
 
     def _kind(self) -> str:
         return "RoleBinding"
 
     def _api_version(self) -> str:
         return "rbac.authorization.k8s.io/v1"
+
+    def _resource_name(self) -> str:
+        return "role_binding"
 
     def create_rolebinding(
         self,
@@ -118,7 +121,7 @@ class RoleBindingManager(BaseResourceManager[V1RoleBinding]):
 
 class ClusterRoleBindingManager(BaseResourceManager[V1ClusterRoleBinding]):
     def _get_api(self) -> RbacAuthorizationV1Api:
-        return self.client.rbac_v1()
+        return self.client.rbac_v1
 
     def _kind(self) -> str:
         return "ClusterRoleBinding"

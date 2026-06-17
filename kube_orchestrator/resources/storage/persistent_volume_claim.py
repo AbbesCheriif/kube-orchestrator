@@ -10,7 +10,7 @@ from kube_orchestrator.resources.base import BaseResourceManager
 class PVCManager(BaseResourceManager[V1PersistentVolumeClaim]):
 
     def _get_api(self):
-        return self.client.core_v1()
+        return self.client.core_v1
 
     def _kind(self) -> str:
         return "PersistentVolumeClaim"
@@ -132,7 +132,7 @@ class PVCManager(BaseResourceManager[V1PersistentVolumeClaim]):
         return ""
 
     def get_used_by_pods(self, name: str, namespace: str) -> list:
-        pods = self.client.core_v1().list_namespaced_pod(namespace=namespace).items
+        pods = self.client.core_v1.list_namespaced_pod(namespace=namespace).items
         result = []
         for pod in pods:
             if not pod.spec or not pod.spec.volumes:

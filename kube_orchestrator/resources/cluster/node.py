@@ -9,7 +9,7 @@ from kube_orchestrator.resources.base import BaseResourceManager
 
 class NodeManager(BaseResourceManager[V1Node]):
     def _get_api(self) -> CoreV1Api:
-        return self.client.core_v1()
+        return self.client.core_v1
 
     def _kind(self) -> str:
         return "Node"
@@ -100,7 +100,7 @@ class NodeManager(BaseResourceManager[V1Node]):
         return not bool(node.spec.unschedulable)
 
     def get_pods(self, name: str) -> list[V1Pod]:
-        result = self.client.core_v1().list_pod_for_all_namespaces(
+        result = self.client.core_v1.list_pod_for_all_namespaces(
             field_selector=f"spec.nodeName={name}"
         )
         return result.items
@@ -187,7 +187,7 @@ class NodeManager(BaseResourceManager[V1Node]):
         }
         if grace_period_seconds is not None:
             body["deleteOptions"] = {"gracePeriodSeconds": grace_period_seconds}
-        self.client.core_v1().create_namespaced_pod_eviction(
+        self.client.core_v1.create_namespaced_pod_eviction(
             pod_name, namespace, body
         )
 

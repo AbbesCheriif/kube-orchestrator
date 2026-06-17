@@ -41,7 +41,7 @@ class CRDWatcher:
         Blocks until the watch is terminated or an error occurs.
         """
         w = watch.Watch()
-        api = self.client.api_extensions_v1()
+        api = self.client.api_extensions_v1
         for raw_event in w.stream(api.list_custom_resource_definition):
             event_type: str = raw_event.get("type", "")
             obj = raw_event.get("object")

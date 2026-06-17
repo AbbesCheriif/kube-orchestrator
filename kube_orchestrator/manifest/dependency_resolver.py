@@ -47,7 +47,7 @@ class DependencyResolver:
     ) -> bool:
         """Block until the CRD has an Established condition or timeout elapses."""
         deadline = time.monotonic() + (timeout or self.default_timeout)
-        api = self.client.api_extensions_v1()
+        api = self.client.api_extensions_v1
         while time.monotonic() < deadline:
             try:
                 crd = api.read_custom_resource_definition(name)
