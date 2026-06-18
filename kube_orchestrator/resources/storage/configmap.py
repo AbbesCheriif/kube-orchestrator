@@ -10,7 +10,7 @@ from kube_orchestrator.resources.base import BaseResourceManager
 class ConfigMapManager(BaseResourceManager[V1ConfigMap]):
 
     def _get_api(self):
-        return self.client.core_v1()
+        return self.client.core_v1
 
     def _kind(self) -> str:
         return "ConfigMap"

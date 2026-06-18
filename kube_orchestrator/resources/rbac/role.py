@@ -8,7 +8,7 @@ from kube_orchestrator.resources.base import BaseResourceManager
 class RoleManager(BaseResourceManager[V1Role]):
 
     def _get_api(self):
-        return self.client.rbac_v1()
+        return self.client.rbac_v1
 
     def _kind(self) -> str:
         return "Role"
@@ -23,7 +23,7 @@ class RoleManager(BaseResourceManager[V1Role]):
                 resources=r.get("resources", []),
                 verbs=r.get("verbs", []),
                 resource_names=r.get("resourceNames"),
-                non_resource_ur_ls=r.get("nonResourceURLs"),
+                non_resource_urls=r.get("nonResourceURLs"),
             )
             for r in rules
         ]
@@ -95,7 +95,7 @@ class RoleManager(BaseResourceManager[V1Role]):
 class ClusterRoleManager(BaseResourceManager[V1ClusterRole]):
 
     def _get_api(self):
-        return self.client.rbac_v1()
+        return self.client.rbac_v1
 
     def _kind(self) -> str:
         return "ClusterRole"
@@ -110,7 +110,7 @@ class ClusterRoleManager(BaseResourceManager[V1ClusterRole]):
                 resources=r.get("resources", []),
                 verbs=r.get("verbs", []),
                 resource_names=r.get("resourceNames"),
-                non_resource_ur_ls=r.get("nonResourceURLs"),
+                non_resource_urls=r.get("nonResourceURLs"),
             )
             for r in rules
         ]
@@ -165,7 +165,7 @@ class ClusterRoleManager(BaseResourceManager[V1ClusterRole]):
             api_groups=api_groups,
             resources=resources,
             verbs=verbs,
-            non_resource_ur_ls=non_resource_urls,
+            non_resource_urls=non_resource_urls,
         )
         cr.rules = (cr.rules or []) + [new_rule]
         return self._get_api().replace_cluster_role(

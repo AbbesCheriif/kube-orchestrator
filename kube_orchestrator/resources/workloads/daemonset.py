@@ -19,7 +19,7 @@ class DaemonSetManager(BaseResourceManager[client.V1DaemonSet]):
 
     def __init__(
         self,
-        kube_client: KubeClient,
+        kube_client: "KubeClient | None" = None,
         default_namespace: str = "default",
         dry_run: bool = False,
     ) -> None:

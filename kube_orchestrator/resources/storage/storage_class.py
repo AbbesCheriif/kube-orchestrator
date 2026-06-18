@@ -8,7 +8,7 @@ from kube_orchestrator.resources.base import BaseResourceManager
 class StorageClassManager(BaseResourceManager[V1StorageClass]):
 
     def _get_api(self):
-        return self.client.storage_v1()
+        return self.client.storage_v1
 
     def _kind(self) -> str:
         return "StorageClass"
@@ -79,5 +79,5 @@ class StorageClassManager(BaseResourceManager[V1StorageClass]):
         return self._get_api().replace_storage_class(name=name, body=sc, dry_run=self.dry_run)
 
     def get_pvs_using(self, name: str) -> list:
-        pvs = self.client.core_v1().list_persistent_volume().items
+        pvs = self.client.core_v1.list_persistent_volume().items
         return [pv for pv in pvs if pv.spec.storage_class_name == name]
