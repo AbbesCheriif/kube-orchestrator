@@ -1,0 +1,18 @@
+[run]
+source = kube_orchestrator
+omit =
+    kube_orchestrator/_version.py
+    kube_orchestrator/cli/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if TYPE_CHECKING:
+    raise NotImplementedError
+    @(abc\.)?abstractmethod
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml
