@@ -34,6 +34,9 @@ class DaemonSetManager(BaseResourceManager[client.V1DaemonSet]):
     def _api_version(self) -> str:
         return "apps/v1"
 
+    def _resource_name(self) -> str:
+        return "daemon_set"
+
     # ------------------------------------------------------------------
     # CRUD
     # ------------------------------------------------------------------

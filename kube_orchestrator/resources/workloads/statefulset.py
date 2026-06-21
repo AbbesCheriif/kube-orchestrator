@@ -37,6 +37,9 @@ class StatefulSetManager(BaseResourceManager[client.V1StatefulSet]):
     def _api_version(self) -> str:
         return "apps/v1"
 
+    def _resource_name(self) -> str:
+        return "stateful_set"
+
     # ------------------------------------------------------------------
     # CRUD
     # ------------------------------------------------------------------

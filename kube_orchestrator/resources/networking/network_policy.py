@@ -26,6 +26,9 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
     def _api_version(self) -> str:
         return "networking.k8s.io/v1"
 
+    def _resource_name(self) -> str:
+        return "network_policy"
+
     # ------------------------------------------------------------------
     # Full-spec factory
     # ------------------------------------------------------------------

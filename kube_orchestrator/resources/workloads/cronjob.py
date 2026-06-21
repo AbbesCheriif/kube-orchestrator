@@ -34,6 +34,9 @@ class CronJobManager(BaseResourceManager[client.V1CronJob]):
     def _api_version(self) -> str:
         return "batch/v1"
 
+    def _resource_name(self) -> str:
+        return "cron_job"
+
     # ------------------------------------------------------------------
     # CRUD
     # ------------------------------------------------------------------
