@@ -110,8 +110,15 @@ def render_file(path: str, values: dict[str, Any]) -> list[dict[str, Any]]:
 
 def render_string(content: str, values: dict[str, Any]) -> list[dict[str, Any]]:
     """Render a Jinja2 template string and parse the result as YAML."""
-    template = _ENV.from_string(content)
-    rendered = template.render(**values)
+    from jinja2 import UndefinedError
+
+    from kube_orchestrator.core.exceptions import ManifestRenderError
+
+    try:
+        template = _ENV.from_string(content)
+        rendered = template.render(**values)
+    except UndefinedError as exc:
+        raise ManifestRenderError(template=content, variable=str(exc)) from exc
     docs = list(yaml.safe_load_all(rendered))
     return [d for d in docs if d is not None]
 
