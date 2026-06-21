@@ -17,14 +17,14 @@ class TestKubeClientSingleton:
         KubeClient.reset()
 
     def test_get_instance_returns_same_object(self) -> None:
-        with patch("kube_orchestrator.core.client.config"):
+        with patch("kube_orchestrator.core.client.KubeConfig"):
             with patch("kube_orchestrator.core.client.client"):
                 inst1 = KubeClient.get_instance()
                 inst2 = KubeClient.get_instance()
                 assert inst1 is inst2
 
     def test_reset_clears_instance(self) -> None:
-        with patch("kube_orchestrator.core.client.config"):
+        with patch("kube_orchestrator.core.client.KubeConfig"):
             with patch("kube_orchestrator.core.client.client"):
                 inst1 = KubeClient.get_instance()
                 KubeClient.reset()
@@ -33,7 +33,7 @@ class TestKubeClientSingleton:
 
     def test_core_v1_returns_api(self) -> None:
         mock_api = MagicMock()
-        with patch("kube_orchestrator.core.client.config"):
+        with patch("kube_orchestrator.core.client.KubeConfig"):
             with patch("kube_orchestrator.core.client.client") as mock_client_mod:
                 mock_client_mod.CoreV1Api.return_value = mock_api
                 inst = KubeClient.get_instance()
@@ -42,7 +42,7 @@ class TestKubeClientSingleton:
 
     def test_apps_v1_returns_api(self) -> None:
         mock_api = MagicMock()
-        with patch("kube_orchestrator.core.client.config"):
+        with patch("kube_orchestrator.core.client.KubeConfig"):
             with patch("kube_orchestrator.core.client.client") as mock_client_mod:
                 mock_client_mod.AppsV1Api.return_value = mock_api
                 inst = KubeClient.get_instance()
@@ -51,7 +51,7 @@ class TestKubeClientSingleton:
 
     def test_networking_v1_returns_api(self) -> None:
         mock_api = MagicMock()
-        with patch("kube_orchestrator.core.client.config"):
+        with patch("kube_orchestrator.core.client.KubeConfig"):
             with patch("kube_orchestrator.core.client.client") as mock_client_mod:
                 mock_client_mod.NetworkingV1Api.return_value = mock_api
                 inst = KubeClient.get_instance()
@@ -60,7 +60,7 @@ class TestKubeClientSingleton:
 
     def test_batch_v1_returns_api(self) -> None:
         mock_api = MagicMock()
-        with patch("kube_orchestrator.core.client.config"):
+        with patch("kube_orchestrator.core.client.KubeConfig"):
             with patch("kube_orchestrator.core.client.client") as mock_client_mod:
                 mock_client_mod.BatchV1Api.return_value = mock_api
                 inst = KubeClient.get_instance()

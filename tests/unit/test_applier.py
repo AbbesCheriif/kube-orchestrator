@@ -48,7 +48,8 @@ class TestComputeDiff:
     def test_diff_empty_when_identical(self, applier: ManifestApplier) -> None:
         manifest = {"spec": {"replicas": 1}}
         diff = applier.compute_diff(manifest, manifest)
-        assert diff == {}
+        # compute_diff returns {"added": {}, "changed": {}, "removed": {}} when identical
+        assert not diff.get("added") and not diff.get("changed") and not diff.get("removed")
 
 
 @pytest.mark.unit

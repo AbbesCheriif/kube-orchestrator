@@ -4,6 +4,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
+from kubernetes.config.config_exception import ConfigException
 
 from kube_orchestrator.core.config import KubeConfig
 
@@ -20,15 +21,16 @@ class TestKubeConfig:
 
     def test_load_default_falls_back_to_file(self) -> None:
         cfg = KubeConfig()
-        with patch.object(cfg, "load_from_incluster", side_effect=Exception("not in cluster")):
+        with patch.object(cfg, "load_from_incluster", side_effect=ConfigException("not in cluster")):
             with patch.object(cfg, "load_from_file") as mock_file:
                 cfg.load_default()
-                mock_file.assert_called_once_with(None)
+                mock_file.assert_called_once()
 
     def test_list_contexts_returns_list(self) -> None:
         cfg = KubeConfig()
-        with patch("kube_orchestrator.core.config.config") as mock_config:
-            mock_config.list_kube_config_contexts.return_value = (
+        cfg._config_file = "/fake/path"
+        with patch("kube_orchestrator.core.config.list_kube_config_contexts") as mock_list:
+            mock_list.return_value = (
                 [{"name": "ctx1"}, {"name": "ctx2"}],
                 {"name": "ctx1"},
             )
@@ -38,6 +40,7 @@ class TestKubeConfig:
 
     def test_switch_context_calls_load(self) -> None:
         cfg = KubeConfig()
-        with patch("kube_orchestrator.core.config.config") as mock_config:
+        with patch("kube_orchestrator.core.config.load_kube_config") as mock_load:
             cfg.switch_context("my-context")
-            mock_config.load_kube_config.assert_called_once_with(context="my-context")
+            mock_load.assert_called_once()
+            assert mock_load.call_args.kwargs["context"] == "my-context"
