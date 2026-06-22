@@ -25,7 +25,7 @@ class TestPodManagerCreate:
         mock_pod = MagicMock()
         mock_core_v1.read_namespaced_pod.return_value = mock_pod
         result = pod_manager.get_pod("test-pod", "default")
-        mock_core_v1.read_namespaced_pod.assert_called_once_with("test-pod", "default")
+        mock_core_v1.read_namespaced_pod.assert_called_once_with(name="test-pod", namespace="default")
         assert result is mock_pod
 
     def test_list_pods(self, pod_manager: PodManager, mock_core_v1: MagicMock) -> None:

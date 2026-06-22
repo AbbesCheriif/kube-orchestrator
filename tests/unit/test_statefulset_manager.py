@@ -39,10 +39,9 @@ class TestStatefulSetManager:
 
     def test_scale(self, ss_manager: StatefulSetManager, mock_apps_v1: MagicMock) -> None:
         mock_scale = MagicMock()
-        mock_apps_v1.read_namespaced_stateful_set_scale.return_value = mock_scale
-        mock_apps_v1.replace_namespaced_stateful_set_scale.return_value = mock_scale
+        mock_apps_v1.patch_namespaced_stateful_set_scale.return_value = mock_scale
         ss_manager.scale("my-ss", "default", replicas=2)
-        mock_apps_v1.replace_namespaced_stateful_set_scale.assert_called_once()
+        mock_apps_v1.patch_namespaced_stateful_set_scale.assert_called_once()
 
     def test_set_partition_update(self, ss_manager: StatefulSetManager, mock_apps_v1: MagicMock) -> None:
         mock_ss = MagicMock()

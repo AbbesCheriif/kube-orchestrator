@@ -31,9 +31,9 @@ class TestDaemonSetManager:
     def test_update_image(self, ds_manager: DaemonSetManager, mock_apps_v1: MagicMock) -> None:
         mock_ds = MagicMock()
         mock_apps_v1.read_namespaced_daemon_set.return_value = mock_ds
-        mock_apps_v1.patch_namespaced_daemon_set.return_value = mock_ds
+        mock_apps_v1.replace_namespaced_daemon_set.return_value = mock_ds
         ds_manager.update_image("fluentd", "kube-system", "fluentd", "fluentd:v2")
-        mock_apps_v1.patch_namespaced_daemon_set.assert_called_once()
+        mock_apps_v1.replace_namespaced_daemon_set.assert_called_once()
 
     def test_set_node_selector(self, ds_manager: DaemonSetManager, mock_apps_v1: MagicMock) -> None:
         mock_ds = MagicMock()

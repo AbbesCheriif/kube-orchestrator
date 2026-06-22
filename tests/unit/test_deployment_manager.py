@@ -35,10 +35,9 @@ class TestDeploymentManagerCreate:
 
     def test_scale(self, dep_manager: DeploymentManager, mock_apps_v1: MagicMock) -> None:
         mock_scale = MagicMock()
-        mock_apps_v1.read_namespaced_deployment_scale.return_value = mock_scale
-        mock_apps_v1.replace_namespaced_deployment_scale.return_value = mock_scale
+        mock_apps_v1.patch_namespaced_deployment_scale.return_value = mock_scale
         dep_manager.scale("test-deploy", "default", replicas=5)
-        mock_apps_v1.replace_namespaced_deployment_scale.assert_called_once()
+        mock_apps_v1.patch_namespaced_deployment_scale.assert_called_once()
 
     def test_delete_deployment(self, dep_manager: DeploymentManager, mock_apps_v1: MagicMock) -> None:
         dep_manager.delete_deployment("test-deploy", "default")
@@ -46,13 +45,16 @@ class TestDeploymentManagerCreate:
 
     def test_is_available_true(self, dep_manager: DeploymentManager, mock_apps_v1: MagicMock) -> None:
         mock_dep = MagicMock()
-        mock_dep.status.available_replicas = 2
+        mock_condition = MagicMock()
+        mock_condition.type = "Available"
+        mock_condition.status = "True"
+        mock_dep.status.conditions = [mock_condition]
         mock_apps_v1.read_namespaced_deployment.return_value = mock_dep
         assert dep_manager.is_available("test-deploy", "default") is True
 
     def test_is_available_false(self, dep_manager: DeploymentManager, mock_apps_v1: MagicMock) -> None:
         mock_dep = MagicMock()
-        mock_dep.status.available_replicas = 0
+        mock_dep.status.conditions = []
         mock_apps_v1.read_namespaced_deployment.return_value = mock_dep
         assert dep_manager.is_available("test-deploy", "default") is False
 

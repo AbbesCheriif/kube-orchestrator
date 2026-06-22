@@ -29,13 +29,16 @@ class TestJobManager:
 
     def test_is_complete_true(self, job_manager: JobManager, mock_batch_v1: MagicMock) -> None:
         mock_job = MagicMock()
-        mock_job.status.completion_time = "2026-01-01T00:00:00Z"
+        mock_condition = MagicMock()
+        mock_condition.type = "Complete"
+        mock_condition.status = "True"
+        mock_job.status.conditions = [mock_condition]
         mock_batch_v1.read_namespaced_job.return_value = mock_job
         assert job_manager.is_complete("batch-job", "default") is True
 
     def test_is_complete_false(self, job_manager: JobManager, mock_batch_v1: MagicMock) -> None:
         mock_job = MagicMock()
-        mock_job.status.completion_time = None
+        mock_job.status.conditions = []
         mock_batch_v1.read_namespaced_job.return_value = mock_job
         assert job_manager.is_complete("batch-job", "default") is False
 
