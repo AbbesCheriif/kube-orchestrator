@@ -94,5 +94,5 @@ class TestServiceAccountManager:
             automount_token=False,
         )
         mock_core_v1.create_namespaced_service_account.assert_called_once()
-        call_body = mock_core_v1.create_namespaced_service_account.call_args[0][1]
-        assert call_body["automountServiceAccountToken"] is False
+        call_body = mock_core_v1.create_namespaced_service_account.call_args.kwargs["body"]
+        assert call_body.automount_service_account_token is False

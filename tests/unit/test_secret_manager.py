@@ -24,8 +24,8 @@ class TestSecretManager:
             data={"password": "s3cr3t"},
         )
         mock_core_v1.create_namespaced_secret.assert_called_once()
-        call_body = mock_core_v1.create_namespaced_secret.call_args[0][1]
-        assert call_body["type"] == "Opaque"
+        call_body = mock_core_v1.create_namespaced_secret.call_args.kwargs["body"]
+        assert call_body.type == "Opaque"
 
     def test_create_docker_registry_secret(self, secret_manager: SecretManager, mock_core_v1: MagicMock) -> None:
         mock_core_v1.create_namespaced_secret.return_value = MagicMock()
@@ -37,8 +37,8 @@ class TestSecretManager:
             password="pass",
         )
         mock_core_v1.create_namespaced_secret.assert_called_once()
-        call_body = mock_core_v1.create_namespaced_secret.call_args[0][1]
-        assert call_body["type"] == "kubernetes.io/dockerconfigjson"
+        call_body = mock_core_v1.create_namespaced_secret.call_args.kwargs["body"]
+        assert call_body.type == "kubernetes.io/dockerconfigjson"
 
     def test_get_decoded_value(self, secret_manager: SecretManager, mock_core_v1: MagicMock) -> None:
         encoded = base64.b64encode(b"my-password").decode()
@@ -55,8 +55,8 @@ class TestSecretManager:
         key_file.write_text("KEY_DATA")
         mock_core_v1.create_namespaced_secret.return_value = MagicMock()
         secret_manager.create_tls_secret("tls-secret", "default", str(cert_file), str(key_file))
-        call_body = mock_core_v1.create_namespaced_secret.call_args[0][1]
-        assert call_body["type"] == "kubernetes.io/tls"
+        call_body = mock_core_v1.create_namespaced_secret.call_args.kwargs["body"]
+        assert call_body.type == "kubernetes.io/tls"
 
     def test_delete_secret(self, secret_manager: SecretManager, mock_core_v1: MagicMock) -> None:
         secret_manager.delete_secret("my-secret", "default")
