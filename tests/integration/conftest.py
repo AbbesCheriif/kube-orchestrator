@@ -29,10 +29,12 @@ def kube_client():
 
 @pytest.fixture
 def test_namespace(kube_client) -> str:
-    """Create and yield a temporary namespace, then delete it."""
+    """Create and yield a unique temporary namespace, then delete it."""
+    import uuid
+
     from kube_orchestrator.resources.cluster.namespace import NamespaceManager
 
-    ns_name = "ko-integration-test"
+    ns_name = f"ko-test-{uuid.uuid4().hex[:8]}"
     manager = NamespaceManager(kube_client=kube_client)
     try:
         manager.create_namespace(ns_name)

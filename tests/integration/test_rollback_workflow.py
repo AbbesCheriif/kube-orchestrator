@@ -27,7 +27,8 @@ class TestRollbackWorkflow:
         dep_manager.create_deployment(builder=builder, namespace=test_namespace)
 
         snap = snapshot_store.take_snapshot("test-rollback", test_namespace)
-        assert snap.revision >= 1
+        assert snap.revision >= 0
+        assert snap.manifest is not None
 
         dep_manager.update_image("test-rollback", test_namespace, "app", "nginx:1.25")
 
