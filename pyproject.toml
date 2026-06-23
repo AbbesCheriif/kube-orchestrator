@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68.0", "setuptools-scm>=8.0", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "kube-orchestrator"
@@ -63,8 +63,8 @@ Changelog = "https://github.com/AbbesCheriif/kube-orchestrator/blob/main/CHANGEL
 "Bug Tracker" = "https://github.com/AbbesCheriif/kube-orchestrator/issues"
 
 [project.scripts]
-kube-orchestrator = "kube_orchestrator.cli.main:app"
-ko = "kube_orchestrator.cli.main:app"
+kube-orchestrator = "kube_orchestrator.cli.main:main"
+ko = "kube_orchestrator.cli.main:main"
 
 [project.optional-dependencies]
 dev = [
@@ -79,6 +79,7 @@ dev = [
     "pre-commit>=3.5.0",
     "commitizen>=3.12.0",
     "kubernetes-stubs>=28.1.0",
+    "types-PyYAML>=6.0.0",
 ]
 docs = [
     "mkdocs>=1.5.0",
@@ -86,6 +87,11 @@ docs = [
     "mkdocstrings[python]>=0.24.0",
     "mkdocs-gen-files>=0.5.0",
     "mkdocs-literate-nav>=0.6.0",
+]
+release = [
+    "build>=1.0.0",
+    "twine>=5.0.0",
+    "check-wheel-contents>=0.6.0",
 ]
 
 [tool.setuptools]
@@ -130,6 +136,20 @@ show_error_codes = true
 module = "tests.*"
 disallow_untyped_defs = false
 
+[[tool.mypy.overrides]]
+# kubernetes-stubs does not yet re-export Configuration/ConfigException/
+# ApiClient/AutoscalingV2Api/V2HorizontalPodAutoscaler, and types ApiClient
+# without its dynamic .rest_client/.configuration attributes, even though
+# all of these exist at runtime in kubernetes>=28.1.0. These 3 modules are
+# small and fully reviewed, so disabling both codes here is low-risk.
+module = [
+    "kube_orchestrator.core.config",
+    "kube_orchestrator.core.client",
+    "kube_orchestrator.core.context",
+    "kube_orchestrator.resources.cluster.hpa",
+]
+disable_error_code = ["name-defined", "attr-defined"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
@@ -169,4 +189,13 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM", "RUF"]
-ignore = ["E501"]
+ignore = [
+    "E501",
+    "A001", # ConnectionError/TimeoutError intentionally shadow builtins in the exception hierarchy
+    "A002", # `format` argument name matches the documented public API (configure_logging, get_cluster_health)
+    "RUF001", # Unicode status glyphs (i, checkmarks) are intentional in CLI/log output
+    "RUF002",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B017"] # pytest.raises(Exception) is acceptable in broad failure-path tests
