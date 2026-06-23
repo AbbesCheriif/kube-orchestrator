@@ -12,7 +12,9 @@ class Settings(BaseSettings):
     retry_max_attempts: int = 3
     default_timeout: int = 30
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
 
 
 settings = Settings()

@@ -1,9 +1,12 @@
 """Deploy nginx with health checks, resource limits and HPA."""
+
 from __future__ import annotations
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.resources.cluster.hpa import HPAManager
-from kube_orchestrator.resources.workloads._builders.deployment_builder import DeploymentBuilder
+from kube_orchestrator.resources.workloads._builders.deployment_builder import (
+    DeploymentBuilder,
+)
 from kube_orchestrator.resources.workloads._builders.pod_builder import PodBuilder
 from kube_orchestrator.resources.workloads.deployment import DeploymentManager
 
@@ -13,9 +16,19 @@ pod = (
     PodBuilder("nginx")
     .with_container("nginx", "nginx:1.25")
     .with_ports("nginx", [{"containerPort": 80}])
-    .with_resources("nginx", cpu_request="100m", memory_request="128Mi", cpu_limit="200m", memory_limit="256Mi")
-    .with_liveness_probe("nginx", http_get={"path": "/", "port": 80}, initial_delay=10, period=10)
-    .with_readiness_probe("nginx", http_get={"path": "/", "port": 80}, initial_delay=5, period=5)
+    .with_resources(
+        "nginx",
+        cpu_request="100m",
+        memory_request="128Mi",
+        cpu_limit="200m",
+        memory_limit="256Mi",
+    )
+    .with_liveness_probe(
+        "nginx", http_get={"path": "/", "port": 80}, initial_delay=10, period=10
+    )
+    .with_readiness_probe(
+        "nginx", http_get={"path": "/", "port": 80}, initial_delay=5, period=5
+    )
 )
 
 builder = (
@@ -43,4 +56,6 @@ hpa = hpa_manager.create_cpu_hpa(
     max_replicas=10,
     target_cpu_utilization=70,
 )
-print(f"HPA created: {hpa.metadata.name} (min={hpa.spec.min_replicas}, max={hpa.spec.max_replicas})")
+print(
+    f"HPA created: {hpa.metadata.name} (min={hpa.spec.min_replicas}, max={hpa.spec.max_replicas})"
+)

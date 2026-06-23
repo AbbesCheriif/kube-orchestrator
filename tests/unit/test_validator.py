@@ -1,11 +1,11 @@
 """Unit tests for ManifestValidator."""
+
 from __future__ import annotations
 
 import pytest
 
 from kube_orchestrator.manifest.validator import (
     DEPENDENCY_ORDER,
-    detect_circular_deps,
     group_by_kind,
     group_by_namespace,
     order_by_dependency,
@@ -62,7 +62,11 @@ class TestValidateManifest:
 class TestDependencyOrdering:
     def test_namespace_before_deployment(self) -> None:
         manifests = [
-            {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "app", "namespace": "ns"}},
+            {
+                "apiVersion": "apps/v1",
+                "kind": "Deployment",
+                "metadata": {"name": "app", "namespace": "ns"},
+            },
             {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": "ns"}},
         ]
         ordered = order_by_dependency(manifests)
@@ -71,7 +75,11 @@ class TestDependencyOrdering:
 
     def test_configmap_before_deployment(self) -> None:
         manifests = [
-            {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "app"}},
+            {
+                "apiVersion": "apps/v1",
+                "kind": "Deployment",
+                "metadata": {"name": "app"},
+            },
             {"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"name": "config"}},
         ]
         ordered = order_by_dependency(manifests)
@@ -79,8 +87,12 @@ class TestDependencyOrdering:
         assert kinds.index("ConfigMap") < kinds.index("Deployment")
 
     def test_dependency_order_list_is_ordered(self) -> None:
-        assert DEPENDENCY_ORDER.index("Namespace") < DEPENDENCY_ORDER.index("Deployment")
-        assert DEPENDENCY_ORDER.index("ConfigMap") < DEPENDENCY_ORDER.index("Deployment")
+        assert DEPENDENCY_ORDER.index("Namespace") < DEPENDENCY_ORDER.index(
+            "Deployment"
+        )
+        assert DEPENDENCY_ORDER.index("ConfigMap") < DEPENDENCY_ORDER.index(
+            "Deployment"
+        )
 
 
 @pytest.mark.unit

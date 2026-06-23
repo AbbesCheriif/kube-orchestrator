@@ -1,9 +1,12 @@
 """Quick start example — deploy nginx and expose it as a Service."""
+
 from __future__ import annotations
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.resources.networking.service import ServiceManager
-from kube_orchestrator.resources.workloads._builders.deployment_builder import DeploymentBuilder
+from kube_orchestrator.resources.workloads._builders.deployment_builder import (
+    DeploymentBuilder,
+)
 from kube_orchestrator.resources.workloads._builders.pod_builder import PodBuilder
 from kube_orchestrator.resources.workloads.deployment import DeploymentManager
 

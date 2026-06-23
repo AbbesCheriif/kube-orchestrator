@@ -1,4 +1,5 @@
 """Unit tests for ConfigMapManager."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -15,7 +16,9 @@ def cm_manager(mock_kube_client: MagicMock) -> ConfigMapManager:
 
 @pytest.mark.unit
 class TestConfigMapManager:
-    def test_create_configmap(self, cm_manager: ConfigMapManager, mock_core_v1: MagicMock) -> None:
+    def test_create_configmap(
+        self, cm_manager: ConfigMapManager, mock_core_v1: MagicMock
+    ) -> None:
         mock_core_v1.create_namespaced_config_map.return_value = MagicMock()
         cm_manager.create_configmap(
             name="my-config",
@@ -24,7 +27,9 @@ class TestConfigMapManager:
         )
         mock_core_v1.create_namespaced_config_map.assert_called_once()
 
-    def test_set_key(self, cm_manager: ConfigMapManager, mock_core_v1: MagicMock) -> None:
+    def test_set_key(
+        self, cm_manager: ConfigMapManager, mock_core_v1: MagicMock
+    ) -> None:
         mock_cm = MagicMock()
         mock_cm.data = {"existing": "val"}
         mock_core_v1.read_namespaced_config_map.return_value = mock_cm
@@ -45,6 +50,8 @@ class TestConfigMapManager:
         assert spec["valueFrom"]["configMapKeyRef"]["name"] == "my-config"
         assert spec["valueFrom"]["configMapKeyRef"]["key"] == "DB_URL"
 
-    def test_delete_configmap(self, cm_manager: ConfigMapManager, mock_core_v1: MagicMock) -> None:
+    def test_delete_configmap(
+        self, cm_manager: ConfigMapManager, mock_core_v1: MagicMock
+    ) -> None:
         cm_manager.delete_configmap("my-config", "default")
         mock_core_v1.delete_namespaced_config_map.assert_called_once()

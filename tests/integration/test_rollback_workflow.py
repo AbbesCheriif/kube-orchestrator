@@ -1,4 +1,5 @@
 """Integration tests for the auto-rollback workflow."""
+
 from __future__ import annotations
 
 import pytest
@@ -9,8 +10,12 @@ import pytest
 class TestRollbackWorkflow:
     def test_snapshot_and_rollback(self, kube_client, test_namespace) -> None:
         """Create a deployment, take a snapshot, update image, then rollback."""
-        from kube_orchestrator.resources.workloads._builders.deployment_builder import DeploymentBuilder
-        from kube_orchestrator.resources.workloads._builders.pod_builder import PodBuilder
+        from kube_orchestrator.resources.workloads._builders.deployment_builder import (
+            DeploymentBuilder,
+        )
+        from kube_orchestrator.resources.workloads._builders.pod_builder import (
+            PodBuilder,
+        )
         from kube_orchestrator.resources.workloads.deployment import DeploymentManager
         from kube_orchestrator.rollback.snapshot import SnapshotStore
 

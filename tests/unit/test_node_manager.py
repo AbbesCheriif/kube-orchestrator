@@ -1,7 +1,8 @@
 """Unit tests for NodeManager."""
+
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -34,13 +35,17 @@ class TestNodeManagerCordonUncordon:
         call_body = mock_core_v1.patch_namespaced_node.call_args.kwargs["body"]
         assert call_body["spec"]["unschedulable"] is False
 
-    def test_is_schedulable_true(self, node_manager: NodeManager, mock_core_v1: MagicMock) -> None:
+    def test_is_schedulable_true(
+        self, node_manager: NodeManager, mock_core_v1: MagicMock
+    ) -> None:
         mock_node = MagicMock()
         mock_node.spec.unschedulable = None
         mock_core_v1.read_namespaced_node.return_value = mock_node
         assert node_manager.is_schedulable("worker-1") is True
 
-    def test_is_schedulable_false(self, node_manager: NodeManager, mock_core_v1: MagicMock) -> None:
+    def test_is_schedulable_false(
+        self, node_manager: NodeManager, mock_core_v1: MagicMock
+    ) -> None:
         mock_node = MagicMock()
         mock_node.spec.unschedulable = True
         mock_core_v1.read_namespaced_node.return_value = mock_node
@@ -49,7 +54,9 @@ class TestNodeManagerCordonUncordon:
 
 @pytest.mark.unit
 class TestNodeManagerTaints:
-    def test_add_taint(self, node_manager: NodeManager, mock_core_v1: MagicMock) -> None:
+    def test_add_taint(
+        self, node_manager: NodeManager, mock_core_v1: MagicMock
+    ) -> None:
         mock_node = MagicMock()
         mock_node.spec.taints = []
         mock_core_v1.read_namespaced_node.return_value = mock_node
@@ -57,7 +64,9 @@ class TestNodeManagerTaints:
         node_manager.add_taint("worker-1", "dedicated", "gpu", "NoSchedule")
         mock_core_v1.patch_namespaced_node.assert_called_once()
 
-    def test_remove_taint(self, node_manager: NodeManager, mock_core_v1: MagicMock) -> None:
+    def test_remove_taint(
+        self, node_manager: NodeManager, mock_core_v1: MagicMock
+    ) -> None:
         existing_taint = MagicMock()
         existing_taint.key = "dedicated"
         existing_taint.effect = "NoSchedule"
@@ -69,7 +78,9 @@ class TestNodeManagerTaints:
         call_body = mock_core_v1.patch_namespaced_node.call_args.kwargs["body"]
         assert call_body["spec"]["taints"] == []
 
-    def test_has_taint_true(self, node_manager: NodeManager, mock_core_v1: MagicMock) -> None:
+    def test_has_taint_true(
+        self, node_manager: NodeManager, mock_core_v1: MagicMock
+    ) -> None:
         taint = MagicMock()
         taint.key = "dedicated"
         taint.effect = "NoSchedule"
@@ -78,7 +89,9 @@ class TestNodeManagerTaints:
         mock_core_v1.read_namespaced_node.return_value = mock_node
         assert node_manager.has_taint("worker-1", "dedicated") is True
 
-    def test_has_taint_false(self, node_manager: NodeManager, mock_core_v1: MagicMock) -> None:
+    def test_has_taint_false(
+        self, node_manager: NodeManager, mock_core_v1: MagicMock
+    ) -> None:
         mock_node = MagicMock()
         mock_node.spec.taints = []
         mock_core_v1.read_namespaced_node.return_value = mock_node

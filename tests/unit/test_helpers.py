@@ -1,4 +1,5 @@
 """Unit tests for resource builder helpers."""
+
 from __future__ import annotations
 
 import pytest
@@ -85,7 +86,9 @@ class TestLabelOperations:
         assert result["metadata"]["annotations"]["owner"] == "alice"
 
     def test_remove_annotation(self) -> None:
-        resource: dict = {"metadata": {"annotations": {"owner": "alice", "env": "prod"}}}
+        resource: dict = {
+            "metadata": {"annotations": {"owner": "alice", "env": "prod"}}
+        }
         result = remove_annotation(resource, "owner")
         assert "owner" not in result["metadata"]["annotations"]
 

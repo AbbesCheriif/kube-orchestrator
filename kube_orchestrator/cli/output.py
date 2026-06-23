@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
@@ -12,7 +12,9 @@ _console = Console()
 _err_console = Console(stderr=True)
 
 
-def print_table(headers: list[str], rows: list[list[Any]], title: Optional[str] = None) -> None:
+def print_table(
+    headers: list[str], rows: list[list[Any]], title: str | None = None
+) -> None:
     table = Table(title=title, show_header=True, header_style="bold cyan")
     for h in headers:
         table.add_column(h)
@@ -53,10 +55,16 @@ def print_health_report(report: dict[str, Any]) -> None:
     for section in ("nodes", "control_plane", "workloads", "storage", "networking"):
         if section in report:
             data = report[section]
-            status = data.get("status", "unknown") if isinstance(data, dict) else str(data)
-            lines.append(f"  [cyan]{section.replace('_', ' ').title()}:[/cyan] {status}")
+            status = (
+                data.get("status", "unknown") if isinstance(data, dict) else str(data)
+            )
+            lines.append(
+                f"  [cyan]{section.replace('_', ' ').title()}:[/cyan] {status}"
+            )
 
-    _console.print(Panel("\n".join(lines), title="Cluster Health Report", border_style=color))
+    _console.print(
+        Panel("\n".join(lines), title="Cluster Health Report", border_style=color)
+    )
 
 
 def progress_bar(total: int, description: str) -> Progress:

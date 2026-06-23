@@ -1,4 +1,5 @@
 """Unit tests for the exception hierarchy."""
+
 from __future__ import annotations
 
 import pytest
@@ -43,12 +44,16 @@ class TestExceptionHierarchy:
         assert issubclass(ResourceNotFoundError, ResourceError)
 
     def test_resource_already_exists_fields(self) -> None:
-        exc = ResourceAlreadyExistsError(kind="Deployment", name="my-deploy", namespace="ns")
+        exc = ResourceAlreadyExistsError(
+            kind="Deployment", name="my-deploy", namespace="ns"
+        )
         assert exc.kind == "Deployment"
         assert issubclass(ResourceAlreadyExistsError, ResourceError)
 
     def test_resource_validation_error_fields(self) -> None:
-        exc = ResourceValidationError(field="spec.replicas", value="-1", message="must be positive")
+        exc = ResourceValidationError(
+            field="spec.replicas", value="-1", message="must be positive"
+        )
         assert exc.field == "spec.replicas"
         assert issubclass(ResourceValidationError, ResourceError)
 
@@ -58,7 +63,9 @@ class TestExceptionHierarchy:
         assert exc.line == 10
 
     def test_manifest_validation_error_fields(self) -> None:
-        exc = ManifestValidationError(kind="Pod", errors=["missing name", "missing image"])
+        exc = ManifestValidationError(
+            kind="Pod", errors=["missing name", "missing image"]
+        )
         assert exc.kind == "Pod"
         assert len(exc.errors) == 2
 

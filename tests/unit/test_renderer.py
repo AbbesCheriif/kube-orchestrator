@@ -1,9 +1,14 @@
 """Unit tests for ManifestRenderer."""
+
 from __future__ import annotations
 
 import pytest
 
-from kube_orchestrator.manifest.renderer import merge_values, override_values, render_string
+from kube_orchestrator.manifest.renderer import (
+    merge_values,
+    override_values,
+    render_string,
+)
 
 
 @pytest.mark.unit
@@ -23,7 +28,15 @@ class TestRenderString:
             "  template:\n    metadata:\n      labels:\n        app: {{ name }}\n"
             "    spec:\n      containers:\n        - name: app\n          image: {{ image }}\n"
         )
-        result = render_string(template, values={"name": "web", "namespace": "prod", "replicas": 3, "image": "nginx:1.25"})
+        result = render_string(
+            template,
+            values={
+                "name": "web",
+                "namespace": "prod",
+                "replicas": 3,
+                "image": "nginx:1.25",
+            },
+        )
         assert result[0]["spec"]["replicas"] == 3
         assert result[0]["metadata"]["namespace"] == "prod"
 

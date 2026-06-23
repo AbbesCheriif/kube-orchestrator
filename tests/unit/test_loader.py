@@ -1,9 +1,14 @@
 """Unit tests for ManifestLoader."""
+
 from __future__ import annotations
 
 import pytest
 
-from kube_orchestrator.manifest.loader import load_file, load_string, validate_yaml_syntax
+from kube_orchestrator.manifest.loader import (
+    load_file,
+    load_string,
+    validate_yaml_syntax,
+)
 
 
 @pytest.mark.unit
