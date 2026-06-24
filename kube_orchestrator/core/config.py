@@ -7,15 +7,13 @@ from pathlib import Path
 from typing import Any
 
 from kubernetes import client, config
+from kubernetes.config.incluster_config import load_incluster_config
 from kubernetes.config.kube_config import (
     KUBE_CONFIG_DEFAULT_LOCATION,
-    KubeConfigLoader,
     list_kube_config_contexts,
     load_kube_config,
     load_kube_config_from_dict,
 )
-from kubernetes.config.incluster_config import load_incluster_config
-
 
 _DEFAULT_KUBECONFIG = os.environ.get("KUBECONFIG", KUBE_CONFIG_DEFAULT_LOCATION)
 
@@ -36,7 +34,7 @@ class KubeConfig:
             client_configuration=self._configuration,
         )
         self._config_file = config_path
-        contexts, active = list_kube_config_contexts(config_file=config_path)
+        _, active = list_kube_config_contexts(config_file=config_path)
         self._active_context = active["name"] if active else None
 
     def load_from_incluster(self) -> None:
@@ -81,7 +79,9 @@ class KubeConfig:
         contexts, _ = list_kube_config_contexts(config_file=config_path)
         for ctx in contexts:
             if ctx["name"] == context:
-                return ctx.get("context", {}).get("namespace", "default")
+                ctx_details: dict[str, Any] = ctx.get("context", {})
+                namespace: str = ctx_details.get("namespace", "default")
+                return namespace
         return "default"
 
     def merge_kubeconfigs(self, paths: list[str]) -> None:
@@ -109,7 +109,7 @@ class KubeConfig:
             client_configuration=self._configuration,
         )
         self._config_file = None
-        contexts, active = list_kube_config_contexts.__wrapped__(merged)  # type: ignore[attr-defined]
+        _, active = list_kube_config_contexts.__wrapped__(merged)
         self._active_context = active["name"] if active else None
 
     @property

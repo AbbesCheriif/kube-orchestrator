@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from kubernetes.client.rest import ApiException
+from typing import Any
+
+from kubernetes.client.exceptions import ApiException
 
 
 class KubeOrchestratorError(Exception):
@@ -32,7 +34,9 @@ class ResourceNotFoundError(ResourceError):
         self.kind = kind
         self.name = name
         self.namespace = namespace
-        super().__init__(f"{kind} '{name}' not found" + (f" in '{namespace}'" if namespace else ""))
+        super().__init__(
+            f"{kind} '{name}' not found" + (f" in '{namespace}'" if namespace else "")
+        )
 
 
 class ResourceAlreadyExistsError(ResourceError):
@@ -40,7 +44,10 @@ class ResourceAlreadyExistsError(ResourceError):
         self.kind = kind
         self.name = name
         self.namespace = namespace
-        super().__init__(f"{kind} '{name}' already exists" + (f" in '{namespace}'" if namespace else ""))
+        super().__init__(
+            f"{kind} '{name}' already exists"
+            + (f" in '{namespace}'" if namespace else "")
+        )
 
 
 class ResourceValidationError(ResourceError):
@@ -70,7 +77,7 @@ class ManifestParseError(ManifestError):
 
 
 class ManifestValidationError(ManifestError):
-    def __init__(self, kind: str = "", errors: list | None = None) -> None:
+    def __init__(self, kind: str = "", errors: list[Any] | None = None) -> None:
         self.kind = kind
         self.errors = errors or []
         super().__init__(f"Validation errors for {kind}: {self.errors}")
@@ -125,4 +132,4 @@ def parse_api_exception(e: ApiException) -> KubeOrchestratorError:
         return AuthenticationError(reason)
     if status == 403:
         return AuthorizationError(reason)
-    return APIError(status_code=status, reason=reason, body=body)
+    return APIError(status_code=status or 0, reason=reason, body=body)
