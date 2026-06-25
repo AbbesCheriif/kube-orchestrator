@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
 from typing import Any
 
 from kubernetes import client
-from kubernetes.client.rest import ApiException
+from kubernetes.client.exceptions import ApiException
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.exceptions import parse_api_exception
@@ -19,7 +18,7 @@ class CronJobManager(BaseResourceManager[client.V1CronJob]):
 
     def __init__(
         self,
-        kube_client: "KubeClient | None" = None,
+        kube_client: KubeClient | None = None,
         default_namespace: str = "default",
         dry_run: bool = False,
     ) -> None:
@@ -46,7 +45,7 @@ class CronJobManager(BaseResourceManager[client.V1CronJob]):
         name: str,
         namespace: str | None = None,
         schedule: str = "*/1 * * * *",
-        job_template: dict | None = None,
+        job_template: dict[str, Any] | None = None,
         concurrency_policy: str = "Allow",
         starting_deadline_seconds: int | None = None,
         successful_jobs_history_limit: int = 3,
@@ -81,9 +80,7 @@ class CronJobManager(BaseResourceManager[client.V1CronJob]):
         }
         return self.create(manifest, ns)
 
-    def get_cronjob(
-        self, name: str, namespace: str | None = None
-    ) -> client.V1CronJob:
+    def get_cronjob(self, name: str, namespace: str | None = None) -> client.V1CronJob:
         return self.get(name, namespace)
 
     def list_cronjobs(
@@ -131,19 +128,17 @@ class CronJobManager(BaseResourceManager[client.V1CronJob]):
     # Trigger / Active jobs
     # ------------------------------------------------------------------
 
-    def trigger_now(
-        self, name: str, namespace: str | None = None
-    ) -> client.V1Job:
+    def trigger_now(self, name: str, namespace: str | None = None) -> client.V1Job:
         """Manually trigger a CronJob by creating a Job from its template."""
         ns = namespace or self.default_namespace
         cj = self.get_cronjob(name, ns)
 
-        job_template = (
-            cj.spec.job_template.to_dict()
-            if cj.spec and cj.spec.job_template and hasattr(cj.spec.job_template, "to_dict")
+        job_template: dict[str, Any] = (
+            dict(cj.spec.job_template.to_dict())
+            if cj.spec and cj.spec.job_template
             else {}
         )
-        spec = job_template.get("spec", {})
+        spec: dict[str, Any] = job_template.get("spec", {})
 
         job_name = f"{name}-manual-{uuid.uuid4().hex[:8]}"
         job_manifest: dict[str, Any] = {
@@ -171,7 +166,7 @@ class CronJobManager(BaseResourceManager[client.V1CronJob]):
 
         try:
             return self.client.batch_v1.create_namespaced_job(
-                namespace=ns, body=job_manifest
+                namespace=ns, body=job_manifest  # type: ignore[arg-type]  # dict body accepted at runtime
             )
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
@@ -181,11 +176,11 @@ class CronJobManager(BaseResourceManager[client.V1CronJob]):
     ) -> list[client.V1Job]:
         ns = namespace or self.default_namespace
         cj = self.get_cronjob(name, ns)
-        active_refs = (
-            cj.status.active if cj.status and cj.status.active else []
-        )
+        active_refs = cj.status.active if cj.status and cj.status.active else []
         jobs: list[client.V1Job] = []
         for ref in active_refs:
+            if not ref.name:
+                continue
             try:
                 job = self.client.batch_v1.read_namespaced_job(
                     name=ref.name, namespace=ns
