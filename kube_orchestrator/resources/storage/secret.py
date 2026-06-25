@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import base64
 import json
+from typing import Any
 
-from kubernetes.client import V1ObjectMeta, V1Secret
+from kubernetes.client import CoreV1Api, V1ObjectMeta, V1Secret
 
 from kube_orchestrator.resources.base import BaseResourceManager
 
 
 class SecretManager(BaseResourceManager[V1Secret]):
 
-    def _get_api(self):
+    def _get_api(self) -> CoreV1Api:
         return self.client.core_v1
 
     def _kind(self) -> str:
@@ -27,8 +28,8 @@ class SecretManager(BaseResourceManager[V1Secret]):
         data: dict[str, bytes] | None = None,
         secret_type: str = "Opaque",
         immutable: bool = False,
-        labels: dict | None = None,
-        annotations: dict | None = None,
+        labels: dict[str, Any] | None = None,
+        annotations: dict[str, Any] | None = None,
     ) -> V1Secret:
         encoded: dict[str, str] | None = None
         if data:
@@ -94,7 +95,7 @@ class SecretManager(BaseResourceManager[V1Secret]):
         email: str | None = None,
     ) -> V1Secret:
         auth = base64.b64encode(f"{username}:{password}".encode()).decode()
-        docker_config: dict = {
+        docker_config: dict[str, Any] = {
             "auths": {
                 server: {
                     "username": username,
@@ -150,9 +151,11 @@ class SecretManager(BaseResourceManager[V1Secret]):
         label_selector: str | None = None,
         secret_type: str | None = None,
     ) -> list[V1Secret]:
-        items = self._get_api().list_namespaced_secret(
-            namespace=namespace, label_selector=label_selector
-        ).items
+        items = (
+            self._get_api()
+            .list_namespaced_secret(namespace=namespace, label_selector=label_selector)
+            .items
+        )
         if secret_type:
             items = [s for s in items if s.type == secret_type]
         return items
@@ -166,7 +169,7 @@ class SecretManager(BaseResourceManager[V1Secret]):
         self,
         name: str,
         namespace: str,
-        string_data: dict,
+        string_data: dict[str, Any],
     ) -> V1Secret:
         secret = self.get_secret(name, namespace)
         secret.string_data = string_data
@@ -206,11 +209,11 @@ class SecretManager(BaseResourceManager[V1Secret]):
     def build_volume_spec(
         self,
         name: str,
-        items: list[dict] | None = None,
+        items: list[dict[str, Any]] | None = None,
         default_mode: int | None = None,
         optional: bool = False,
-    ) -> dict:
-        spec: dict = {"secret": {"secretName": name, "optional": optional}}
+    ) -> dict[str, Any]:
+        spec: dict[str, Any] = {"secret": {"secretName": name, "optional": optional}}
         if items:
             spec["secret"]["items"] = items
         if default_mode is not None:
@@ -222,8 +225,8 @@ class SecretManager(BaseResourceManager[V1Secret]):
         name: str,
         prefix: str | None = None,
         optional: bool = False,
-    ) -> dict:
-        spec: dict = {"secretRef": {"name": name, "optional": optional}}
+    ) -> dict[str, Any]:
+        spec: dict[str, Any] = {"secretRef": {"name": name, "optional": optional}}
         if prefix:
             spec["prefix"] = prefix
         return spec
@@ -233,7 +236,7 @@ class SecretManager(BaseResourceManager[V1Secret]):
         secret_name: str,
         key: str,
         optional: bool = False,
-    ) -> dict:
+    ) -> dict[str, Any]:
         return {
             "valueFrom": {
                 "secretKeyRef": {

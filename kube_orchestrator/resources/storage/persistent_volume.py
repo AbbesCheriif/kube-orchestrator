@@ -1,19 +1,23 @@
 from __future__ import annotations
 
 import time
+from typing import Any
 
-from kubernetes.client import V1ObjectMeta, V1PersistentVolume
+from kubernetes.client import CoreV1Api, V1PersistentVolume
 
 from kube_orchestrator.resources.base import BaseResourceManager
 
 
 class PersistentVolumeManager(BaseResourceManager[V1PersistentVolume]):
 
-    def _get_api(self):
+    def _get_api(self) -> CoreV1Api:
         return self.client.core_v1
 
     def _kind(self) -> str:
         return "PersistentVolume"
+
+    def _resource_name(self) -> str:
+        return "persistent_volume"
 
     def _api_version(self) -> str:
         return "v1"
@@ -26,16 +30,16 @@ class PersistentVolumeManager(BaseResourceManager[V1PersistentVolume]):
         reclaim_policy: str = "Retain",
         storage_class_name: str | None = None,
         volume_mode: str = "Filesystem",
-        nfs: dict | None = None,
-        host_path: dict | None = None,
-        csi: dict | None = None,
-        local: dict | None = None,
-        node_affinity: dict | None = None,
+        nfs: dict[str, Any] | None = None,
+        host_path: dict[str, Any] | None = None,
+        csi: dict[str, Any] | None = None,
+        local: dict[str, Any] | None = None,
+        node_affinity: dict[str, Any] | None = None,
         mount_options: list[str] | None = None,
-        claim_ref: dict | None = None,
-        labels: dict | None = None,
+        claim_ref: dict[str, Any] | None = None,
+        labels: dict[str, Any] | None = None,
     ) -> V1PersistentVolume:
-        spec: dict = {
+        spec: dict[str, Any] = {
             "capacity": {"storage": capacity_storage},
             "accessModes": access_modes,
             "persistentVolumeReclaimPolicy": reclaim_policy,
@@ -64,7 +68,10 @@ class PersistentVolumeManager(BaseResourceManager[V1PersistentVolume]):
             "metadata": {"name": name, "labels": labels or {}},
             "spec": spec,
         }
-        return self._get_api().create_persistent_volume(body=body, dry_run=self.dry_run)
+        return self._get_api().create_persistent_volume(
+            body=body,  # type: ignore[arg-type]  # dict body accepted at runtime
+            dry_run=self.dry_run,
+        )
 
     def get_pv(self, name: str) -> V1PersistentVolume:
         return self._get_api().read_persistent_volume(name=name)
@@ -74,9 +81,9 @@ class PersistentVolumeManager(BaseResourceManager[V1PersistentVolume]):
         label_selector: str | None = None,
         phase: str | None = None,
     ) -> list[V1PersistentVolume]:
-        items = self._get_api().list_persistent_volume(
-            label_selector=label_selector
-        ).items
+        items = (
+            self._get_api().list_persistent_volume(label_selector=label_selector).items
+        )
         if phase:
             items = [pv for pv in items if pv.status and pv.status.phase == phase]
         return items
@@ -86,7 +93,9 @@ class PersistentVolumeManager(BaseResourceManager[V1PersistentVolume]):
 
     def get_phase(self, name: str) -> str:
         pv = self.get_pv(name)
-        return pv.status.phase if pv.status else "Unknown"
+        if pv.status and pv.status.phase:
+            return pv.status.phase
+        return "Unknown"
 
     def get_bound_pvc(self, name: str) -> str | None:
         pv = self.get_pv(name)
@@ -99,7 +108,11 @@ class PersistentVolumeManager(BaseResourceManager[V1PersistentVolume]):
         return self.list_pvs(phase="Available")
 
     def list_by_storage_class(self, sc_name: str) -> list[V1PersistentVolume]:
-        return [pv for pv in self.list_pvs() if pv.spec.storage_class_name == sc_name]
+        return [
+            pv
+            for pv in self.list_pvs()
+            if pv.spec and pv.spec.storage_class_name == sc_name
+        ]
 
     def wait_for_available(self, name: str, timeout_seconds: int = 60) -> bool:
         deadline = time.time() + timeout_seconds

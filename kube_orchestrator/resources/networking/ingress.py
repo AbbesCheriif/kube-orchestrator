@@ -8,9 +8,7 @@ from kubernetes.client import (
     NetworkingV1Api,
     V1Ingress,
 )
-from kubernetes.client.rest import ApiException
 
-from kube_orchestrator.core.exceptions import parse_api_exception
 from kube_orchestrator.resources.base import BaseResourceManager
 from kube_orchestrator.resources.helpers import build_metadata
 
@@ -35,12 +33,12 @@ class IngressManager(BaseResourceManager[V1Ingress]):
         self,
         name: str,
         namespace: str,
-        rules: list[dict] | None = None,
+        rules: list[dict[str, Any]] | None = None,
         ingress_class_name: str | None = None,
-        default_backend: dict | None = None,
-        tls: list[dict] | None = None,
-        labels: dict | None = None,
-        annotations: dict | None = None,
+        default_backend: dict[str, Any] | None = None,
+        tls: list[dict[str, Any]] | None = None,
+        labels: dict[str, Any] | None = None,
+        annotations: dict[str, Any] | None = None,
     ) -> V1Ingress:
         spec: dict[str, Any] = {}
 
@@ -92,10 +90,12 @@ class IngressManager(BaseResourceManager[V1Ingress]):
         name: str,
         namespace: str,
         host: str,
-        paths: list[dict],
+        paths: list[dict[str, Any]],
     ) -> V1Ingress:
         ingress = self.get_ingress(name, namespace)
-        existing_rules = list(getattr(getattr(ingress, "spec", None), "rules", None) or [])
+        existing_rules = list(
+            getattr(getattr(ingress, "spec", None), "rules", None) or []
+        )
         existing_dicts = [self._rule_obj_to_dict(r) for r in existing_rules]
         existing_dicts.append({"host": host, "http": {"paths": paths}})
         return self.patch(
@@ -107,7 +107,9 @@ class IngressManager(BaseResourceManager[V1Ingress]):
 
     def remove_rule(self, name: str, namespace: str, host: str) -> V1Ingress:
         ingress = self.get_ingress(name, namespace)
-        existing_rules = list(getattr(getattr(ingress, "spec", None), "rules", None) or [])
+        existing_rules = list(
+            getattr(getattr(ingress, "spec", None), "rules", None) or []
+        )
         updated = [
             self._rule_obj_to_dict(r)
             for r in existing_rules
@@ -213,7 +215,7 @@ class IngressManager(BaseResourceManager[V1Ingress]):
         rules = getattr(getattr(ingress, "spec", None), "rules", None) or []
         return [getattr(r, "host", "") for r in rules if getattr(r, "host", None)]
 
-    def get_all_rules(self, name: str, namespace: str) -> list[dict]:
+    def get_all_rules(self, name: str, namespace: str) -> list[dict[str, Any]]:
         ingress = self.get_ingress(name, namespace)
         rules = getattr(getattr(ingress, "spec", None), "rules", None) or []
         return [self._rule_obj_to_dict(r) for r in rules]
@@ -223,7 +225,7 @@ class IngressManager(BaseResourceManager[V1Ingress]):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _build_backend(backend: dict) -> dict[str, Any]:
+    def _build_backend(backend: dict[str, Any]) -> dict[str, Any]:
         """Normalize a backend dict (service or resource reference)."""
         result: dict[str, Any] = {}
         if "service" in backend:
@@ -238,7 +240,7 @@ class IngressManager(BaseResourceManager[V1Ingress]):
         return result
 
     @staticmethod
-    def _build_rules(rules: list[dict]) -> list[dict[str, Any]]:
+    def _build_rules(rules: list[dict[str, Any]]) -> list[dict[str, Any]]:
         normalized = []
         for rule in rules:
             entry: dict[str, Any] = {}
@@ -266,7 +268,7 @@ class IngressManager(BaseResourceManager[V1Ingress]):
         return normalized
 
     @staticmethod
-    def _build_tls(tls: list[dict]) -> list[dict[str, Any]]:
+    def _build_tls(tls: list[dict[str, Any]]) -> list[dict[str, Any]]:
         normalized = []
         for t in tls:
             entry: dict[str, Any] = {}
@@ -297,9 +299,12 @@ class IngressManager(BaseResourceManager[V1Ingress]):
                     if svc is not None:
                         port = getattr(svc, "port", None)
                         port_dict: dict[str, Any] = {}
-                        if getattr(port, "number", None) is not None:
+                        if (
+                            port is not None
+                            and getattr(port, "number", None) is not None
+                        ):
                             port_dict["number"] = port.number
-                        if getattr(port, "name", None) is not None:
+                        if port is not None and getattr(port, "name", None) is not None:
                             port_dict["name"] = port.name
                         path_entry["backend"] = {
                             "service": {"name": svc.name, "port": port_dict}

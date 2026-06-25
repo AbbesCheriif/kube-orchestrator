@@ -35,8 +35,10 @@ class AccessValidator:
                 }
             },
         }
-        result = self._auth_api().create_self_subject_access_review(body)
-        return bool(result.status.allowed)
+        result = self._auth_api().create_self_subject_access_review(
+            body  # type: ignore[arg-type]  # dict body accepted at runtime
+        )
+        return bool(result.status and result.status.allowed)
 
     def can_service_account(
         self,
@@ -58,8 +60,10 @@ class AccessValidator:
                 },
             },
         }
-        result = self._auth_api().create_subject_access_review(body)
-        return bool(result.status.allowed)
+        result = self._auth_api().create_subject_access_review(
+            body  # type: ignore[arg-type]  # dict body accepted at runtime
+        )
+        return bool(result.status and result.status.allowed)
 
     def list_permissions_for_subject(
         self,

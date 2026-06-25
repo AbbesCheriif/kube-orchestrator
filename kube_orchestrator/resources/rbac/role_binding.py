@@ -126,6 +126,9 @@ class ClusterRoleBindingManager(BaseResourceManager[V1ClusterRoleBinding]):
     def _kind(self) -> str:
         return "ClusterRoleBinding"
 
+    def _resource_name(self) -> str:
+        return "cluster_role_binding"
+
     def _api_version(self) -> str:
         return "rbac.authorization.k8s.io/v1"
 

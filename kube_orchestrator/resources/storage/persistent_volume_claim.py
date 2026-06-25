@@ -1,19 +1,25 @@
 from __future__ import annotations
 
 import time
+from typing import Any
 
-from kubernetes.client import V1PersistentVolumeClaim
+from kubernetes import client
+from kubernetes.client import CoreV1Api, V1PersistentVolumeClaim
 
+from kube_orchestrator.core.exceptions import ResourceNotFoundError
 from kube_orchestrator.resources.base import BaseResourceManager
 
 
 class PVCManager(BaseResourceManager[V1PersistentVolumeClaim]):
 
-    def _get_api(self):
+    def _get_api(self) -> CoreV1Api:
         return self.client.core_v1
 
     def _kind(self) -> str:
         return "PersistentVolumeClaim"
+
+    def _resource_name(self) -> str:
+        return "persistent_volume_claim"
 
     def _api_version(self) -> str:
         return "v1"
@@ -27,17 +33,17 @@ class PVCManager(BaseResourceManager[V1PersistentVolumeClaim]):
         storage_class_name: str | None = None,
         volume_mode: str = "Filesystem",
         volume_name: str | None = None,
-        selector: dict | None = None,
-        data_source: dict | None = None,
-        data_source_ref: dict | None = None,
+        selector: dict[str, Any] | None = None,
+        data_source: dict[str, Any] | None = None,
+        data_source_ref: dict[str, Any] | None = None,
         storage_limit: str | None = None,
-        labels: dict | None = None,
+        labels: dict[str, Any] | None = None,
     ) -> V1PersistentVolumeClaim:
-        resources: dict = {"requests": {"storage": storage_request}}
+        resources: dict[str, Any] = {"requests": {"storage": storage_request}}
         if storage_limit:
             resources["limits"] = {"storage": storage_limit}
 
-        spec: dict = {
+        spec: dict[str, Any] = {
             "accessModes": access_modes,
             "resources": resources,
             "volumeMode": volume_mode,
@@ -64,7 +70,9 @@ class PVCManager(BaseResourceManager[V1PersistentVolumeClaim]):
             "spec": spec,
         }
         return self._get_api().create_namespaced_persistent_volume_claim(
-            namespace=namespace, body=body, dry_run=self.dry_run
+            namespace=namespace,
+            body=body,  # type: ignore[arg-type]  # dict body accepted at runtime
+            dry_run=self.dry_run,
         )
 
     def get_pvc(self, name: str, namespace: str) -> V1PersistentVolumeClaim:
@@ -78,9 +86,13 @@ class PVCManager(BaseResourceManager[V1PersistentVolumeClaim]):
         label_selector: str | None = None,
         phase: str | None = None,
     ) -> list[V1PersistentVolumeClaim]:
-        items = self._get_api().list_namespaced_persistent_volume_claim(
-            namespace=namespace, label_selector=label_selector
-        ).items
+        items = (
+            self._get_api()
+            .list_namespaced_persistent_volume_claim(
+                namespace=namespace, label_selector=label_selector
+            )
+            .items
+        )
         if phase:
             items = [pvc for pvc in items if pvc.status and pvc.status.phase == phase]
         return items
@@ -100,7 +112,9 @@ class PVCManager(BaseResourceManager[V1PersistentVolumeClaim]):
 
     def get_phase(self, name: str, namespace: str) -> str:
         pvc = self.get_pvc(name, namespace)
-        return pvc.status.phase if pvc.status else "Unknown"
+        if pvc.status and pvc.status.phase:
+            return pvc.status.phase
+        return "Unknown"
 
     def get_bound_pv(self, name: str, namespace: str) -> str | None:
         pvc = self.get_pvc(name, namespace)
@@ -120,6 +134,12 @@ class PVCManager(BaseResourceManager[V1PersistentVolumeClaim]):
         self, name: str, namespace: str, new_storage: str
     ) -> V1PersistentVolumeClaim:
         pvc = self.get_pvc(name, namespace)
+        if pvc.spec is None:
+            raise ResourceNotFoundError(self._kind(), name, namespace)
+        if pvc.spec.resources is None:
+            pvc.spec.resources = client.V1VolumeResourceRequirements()  # type: ignore[attr-defined]  # missing from kubernetes-stubs
+        if pvc.spec.resources.requests is None:
+            pvc.spec.resources.requests = {}
         pvc.spec.resources.requests["storage"] = new_storage
         return self._get_api().replace_namespaced_persistent_volume_claim(
             name=name, namespace=namespace, body=pvc, dry_run=self.dry_run
@@ -131,7 +151,7 @@ class PVCManager(BaseResourceManager[V1PersistentVolumeClaim]):
             return pvc.status.capacity.get("storage", "")
         return ""
 
-    def get_used_by_pods(self, name: str, namespace: str) -> list:
+    def get_used_by_pods(self, name: str, namespace: str) -> list[Any]:
         pods = self.client.core_v1.list_namespaced_pod(namespace=namespace).items
         result = []
         for pod in pods:
