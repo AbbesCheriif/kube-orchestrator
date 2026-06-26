@@ -24,9 +24,7 @@ class DependencyResolver:
     # Readiness waiting
     # ------------------------------------------------------------------
 
-    def wait_for_namespace_ready(
-        self, name: str, timeout: int | None = None
-    ) -> bool:
+    def wait_for_namespace_ready(self, name: str, timeout: int | None = None) -> bool:
         """Block until the namespace phase is Active or timeout is reached."""
         deadline = time.monotonic() + (timeout or self.default_timeout)
         from kube_orchestrator.resources.cluster.namespace import NamespaceManager
@@ -42,9 +40,7 @@ class DependencyResolver:
             time.sleep(2)
         return False
 
-    def wait_for_crd_ready(
-        self, name: str, timeout: int | None = None
-    ) -> bool:
+    def wait_for_crd_ready(self, name: str, timeout: int | None = None) -> bool:
         """Block until the CRD has an Established condition or timeout elapses."""
         deadline = time.monotonic() + (timeout or self.default_timeout)
         api = self.client.api_extensions_v1

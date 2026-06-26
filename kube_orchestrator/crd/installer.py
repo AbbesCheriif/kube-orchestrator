@@ -8,7 +8,7 @@ from typing import Any
 
 import yaml
 from kubernetes import client
-from kubernetes.client.rest import ApiException
+from kubernetes.client.exceptions import ApiException
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.exceptions import parse_api_exception
@@ -32,16 +32,22 @@ class CRDInstaller:
         name = manifest["metadata"]["name"]
         if self.is_installed(name):
             existing = self._api().read_custom_resource_definition(name)
-            manifest["metadata"]["resourceVersion"] = existing.metadata.resource_version
-            return self._api().replace_custom_resource_definition(name, manifest)
+            if existing.metadata:
+                manifest["metadata"][
+                    "resourceVersion"
+                ] = existing.metadata.resource_version
+            return self._api().replace_custom_resource_definition(
+                name,
+                manifest,  # type: ignore[arg-type]  # dict body accepted at runtime
+            )
         try:
-            return self._api().create_custom_resource_definition(manifest)
+            return self._api().create_custom_resource_definition(
+                manifest  # type: ignore[arg-type]  # dict body accepted at runtime
+            )
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
 
-    def install_from_file(
-        self, path: str
-    ) -> client.V1CustomResourceDefinition:
+    def install_from_file(self, path: str) -> client.V1CustomResourceDefinition:
         """Load a CRD YAML file and install it."""
         content = Path(path).read_text(encoding="utf-8")
         manifest = yaml.safe_load(content)
@@ -68,9 +74,7 @@ class CRDInstaller:
     # Wait for readiness
     # ------------------------------------------------------------------
 
-    def wait_for_established(
-        self, name: str, timeout_seconds: int = 60
-    ) -> bool:
+    def wait_for_established(self, name: str, timeout_seconds: int = 60) -> bool:
         """Block until the CRD has the Established condition or times out."""
         deadline = time.monotonic() + timeout_seconds
         while time.monotonic() < deadline:
@@ -101,10 +105,7 @@ class CRDInstaller:
             )
             items = result.items
             if group:
-                items = [
-                    crd for crd in items
-                    if crd.spec and crd.spec.group == group
-                ]
+                items = [crd for crd in items if crd.spec and crd.spec.group == group]
             return items
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
@@ -123,8 +124,7 @@ class CRDInstaller:
             if version.storage:
                 schema = version.schema
                 if schema and schema.open_apiv3_schema:
-                    val = schema.open_apiv3_schema
-                    return val.to_dict() if hasattr(val, "to_dict") else dict(val)
+                    return dict(schema.open_apiv3_schema.to_dict())
         return {}
 
     def list_versions(self, name: str) -> list[str]:
