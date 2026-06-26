@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.logging import get_logger
@@ -16,7 +16,7 @@ class ClusterHealthReporter:
         self._client = client or KubeClient.get_instance()
         self._logger = get_logger(__name__)
 
-    def get_cluster_health(self) -> dict:
+    def get_cluster_health(self) -> dict[str, Any]:
         nodes = self.check_node_health()
         control_plane = self.check_control_plane()
         score = self._compute_global_score(nodes, control_plane)
@@ -30,7 +30,7 @@ class ClusterHealthReporter:
             "checked_at": datetime.utcnow().isoformat() + "Z",
         }
 
-    def check_node_health(self) -> dict:
+    def check_node_health(self) -> dict[str, Any]:
         try:
             nodes = self._client.core_v1.list_node()
         except Exception as exc:
@@ -39,12 +39,12 @@ class ClusterHealthReporter:
 
         ready = 0
         not_ready = 0
-        details: list[dict] = []
+        details: list[dict[str, Any]] = []
 
         for node in nodes.items:
-            name = node.metadata.name
+            name = node.metadata.name if node.metadata else None
             is_ready = False
-            conditions = node.status.conditions or []
+            conditions = (node.status.conditions if node.status else None) or []
             for cond in conditions:
                 if cond.type == "Ready" and cond.status == "True":
                     is_ready = True
@@ -55,10 +55,19 @@ class ClusterHealthReporter:
                 not_ready += 1
             details.append({"name": name, "ready": is_ready})
 
-        return {"total": ready + not_ready, "ready": ready, "not_ready": not_ready, "nodes": details}
+        return {
+            "total": ready + not_ready,
+            "ready": ready,
+            "not_ready": not_ready,
+            "nodes": details,
+        }
 
-    def check_control_plane(self) -> dict:
-        result: dict = {"api_server": False, "scheduler": False, "controller_manager": False}
+    def check_control_plane(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "api_server": False,
+            "scheduler": False,
+            "controller_manager": False,
+        }
         try:
             self._client.core_v1.list_namespace(limit=1)
             result["api_server"] = True
@@ -68,7 +77,7 @@ class ClusterHealthReporter:
         try:
             statuses = self._client.core_v1.list_component_status()
             for cs in statuses.items:
-                name = cs.metadata.name
+                name = (cs.metadata.name if cs.metadata else None) or ""
                 healthy = any(
                     c.type == "Healthy" and c.status == "True"
                     for c in (cs.conditions or [])
@@ -104,8 +113,8 @@ class ClusterHealthReporter:
 
         return max(0, score)
 
-    def get_workload_health(self, namespace: str) -> dict:
-        result: dict = {
+    def get_workload_health(self, namespace: str) -> dict[str, Any]:
+        result: dict[str, Any] = {
             "namespace": namespace,
             "deployments": {"total": 0, "available": 0, "degraded": 0},
             "pods": {"total": 0, "running": 0, "pending": 0, "failed": 0},
@@ -114,7 +123,9 @@ class ClusterHealthReporter:
             pods = self._client.core_v1.list_namespaced_pod(namespace)
             for pod in pods.items:
                 result["pods"]["total"] += 1
-                phase = (pod.status.phase or "Unknown").lower()
+                phase = (
+                    (pod.status.phase if pod.status else None) or "Unknown"
+                ).lower()
                 if phase == "running":
                     result["pods"]["running"] += 1
                 elif phase == "pending":
@@ -122,32 +133,36 @@ class ClusterHealthReporter:
                 elif phase == "failed":
                     result["pods"]["failed"] += 1
         except Exception as exc:
-            self._logger.warning("workload_health_pods_failed", namespace=namespace, error=str(exc))
+            self._logger.warning(
+                "workload_health_pods_failed", namespace=namespace, error=str(exc)
+            )
 
         try:
             deploys = self._client.apps_v1.list_namespaced_deployment(namespace)
             for d in deploys.items:
                 result["deployments"]["total"] += 1
-                desired = d.spec.replicas or 1
-                available = d.status.available_replicas or 0
+                desired = (d.spec.replicas if d.spec else None) or 1
+                available = (d.status.available_replicas if d.status else None) or 0
                 if available >= desired:
                     result["deployments"]["available"] += 1
                 else:
                     result["deployments"]["degraded"] += 1
         except Exception as exc:
-            self._logger.warning("workload_health_deploys_failed", namespace=namespace, error=str(exc))
+            self._logger.warning(
+                "workload_health_deploys_failed", namespace=namespace, error=str(exc)
+            )
 
         return result
 
-    def analyze_readiness(self, namespace: str) -> dict:
+    def analyze_readiness(self, namespace: str) -> dict[str, Any]:
         ready: list[str] = []
         not_ready: list[str] = []
         try:
             pods = self._client.core_v1.list_namespaced_pod(namespace)
             for pod in pods.items:
-                name = pod.metadata.name
+                name = (pod.metadata.name if pod.metadata else None) or ""
                 pod_ready = False
-                for cond in (pod.status.conditions or []):
+                for cond in (pod.status.conditions if pod.status else None) or []:
                     if cond.type == "Ready" and cond.status == "True":
                         pod_ready = True
                         break
@@ -156,16 +171,22 @@ class ClusterHealthReporter:
                 else:
                     not_ready.append(name)
         except Exception as exc:
-            self._logger.error("analyze_readiness_failed", namespace=namespace, error=str(exc))
+            self._logger.error(
+                "analyze_readiness_failed", namespace=namespace, error=str(exc)
+            )
 
-        return {"ready": ready, "not_ready": not_ready, "total": len(ready) + len(not_ready)}
+        return {
+            "ready": ready,
+            "not_ready": not_ready,
+            "total": len(ready) + len(not_ready),
+        }
 
-    def detect_crash_loops(self, namespace: str) -> list[dict]:
-        crash_loops: list[dict] = []
+    def detect_crash_loops(self, namespace: str) -> list[dict[str, Any]]:
+        crash_loops: list[dict[str, Any]] = []
         try:
             pods = self._client.core_v1.list_namespaced_pod(namespace)
             for pod in pods.items:
-                for cs in (pod.status.container_statuses or []):
+                for cs in (pod.status.container_statuses if pod.status else None) or []:
                     if cs.restart_count and cs.restart_count >= 3:
                         reason = ""
                         last_msg = ""
@@ -174,7 +195,7 @@ class ClusterHealthReporter:
                             last_msg = cs.last_state.terminated.message or ""
                         crash_loops.append(
                             {
-                                "pod": pod.metadata.name,
+                                "pod": pod.metadata.name if pod.metadata else None,
                                 "container": cs.name,
                                 "restart_count": cs.restart_count,
                                 "reason": reason,
@@ -182,12 +203,14 @@ class ClusterHealthReporter:
                             }
                         )
         except Exception as exc:
-            self._logger.error("detect_crash_loops_failed", namespace=namespace, error=str(exc))
+            self._logger.error(
+                "detect_crash_loops_failed", namespace=namespace, error=str(exc)
+            )
 
         return crash_loops
 
-    def get_pending_pods(self, namespace: str) -> list[dict]:
-        pending: list[dict] = []
+    def get_pending_pods(self, namespace: str) -> list[dict[str, Any]]:
+        pending: list[dict[str, Any]] = []
         try:
             pods = self._client.core_v1.list_namespaced_pod(
                 namespace, field_selector="status.phase=Pending"
@@ -195,60 +218,79 @@ class ClusterHealthReporter:
             now = datetime.utcnow()
             for pod in pods.items:
                 reason = ""
-                for cond in (pod.status.conditions or []):
+                for cond in (pod.status.conditions if pod.status else None) or []:
                     if cond.type == "PodScheduled" and cond.status != "True":
                         reason = cond.reason or ""
                         break
                 duration = ""
-                if pod.metadata.creation_timestamp:
+                if pod.metadata and pod.metadata.creation_timestamp:
                     delta = now - pod.metadata.creation_timestamp.replace(tzinfo=None)
                     duration = str(delta)
-                pending.append({"pod": pod.metadata.name, "reason": reason, "duration": duration})
+                pending.append(
+                    {
+                        "pod": pod.metadata.name if pod.metadata else None,
+                        "reason": reason,
+                        "duration": duration,
+                    }
+                )
         except Exception as exc:
-            self._logger.error("get_pending_pods_failed", namespace=namespace, error=str(exc))
+            self._logger.error(
+                "get_pending_pods_failed", namespace=namespace, error=str(exc)
+            )
 
         return pending
 
-    def get_failed_deployments(self, namespace: str) -> list[dict]:
-        failed: list[dict] = []
+    def get_failed_deployments(self, namespace: str) -> list[dict[str, Any]]:
+        failed: list[dict[str, Any]] = []
         try:
             deploys = self._client.apps_v1.list_namespaced_deployment(namespace)
             for d in deploys.items:
-                desired = d.spec.replicas or 1
-                available = d.status.available_replicas or 0
+                desired = (d.spec.replicas if d.spec else None) or 1
+                available = (d.status.available_replicas if d.status else None) or 0
                 if available < desired:
                     failed.append(
                         {
-                            "name": d.metadata.name,
+                            "name": d.metadata.name if d.metadata else None,
                             "desired": desired,
                             "available": available,
                         }
                     )
         except Exception as exc:
-            self._logger.error("get_failed_deployments_failed", namespace=namespace, error=str(exc))
+            self._logger.error(
+                "get_failed_deployments_failed", namespace=namespace, error=str(exc)
+            )
 
         return failed
 
-    def get_oom_killed_pods(self, namespace: str) -> list[dict]:
-        oom: list[dict] = []
+    def get_oom_killed_pods(self, namespace: str) -> list[dict[str, Any]]:
+        oom: list[dict[str, Any]] = []
         try:
             pods = self._client.core_v1.list_namespaced_pod(namespace)
             for pod in pods.items:
-                for cs in (pod.status.container_statuses or []):
+                for cs in (pod.status.container_statuses if pod.status else None) or []:
                     terminated = None
                     if cs.state and cs.state.terminated:
                         terminated = cs.state.terminated
                     elif cs.last_state and cs.last_state.terminated:
                         terminated = cs.last_state.terminated
                     if terminated and terminated.reason == "OOMKilled":
-                        oom.append({"pod": pod.metadata.name, "container": cs.name})
+                        oom.append(
+                            {
+                                "pod": pod.metadata.name if pod.metadata else None,
+                                "container": cs.name,
+                            }
+                        )
         except Exception as exc:
-            self._logger.error("get_oom_killed_pods_failed", namespace=namespace, error=str(exc))
+            self._logger.error(
+                "get_oom_killed_pods_failed", namespace=namespace, error=str(exc)
+            )
 
         return oom
 
-    def generate_health_report(self, namespace: str | None = None, format: str = "json") -> str:
-        report: dict = {
+    def generate_health_report(
+        self, namespace: str | None = None, format: str = "json"
+    ) -> str:
+        report: dict[str, Any] = {
             "generated_at": datetime.utcnow().isoformat() + "Z",
             "cluster": self.get_cluster_health(),
         }
@@ -267,27 +309,33 @@ class ClusterHealthReporter:
             return self._to_markdown(report)
         return self._to_text(report)
 
-    def _to_text(self, report: dict) -> str:
+    def _to_text(self, report: dict[str, Any]) -> str:
         lines = [f"Health Report — {report.get('generated_at', '')}"]
         score = report.get("cluster", {}).get("score", "N/A")
         lines.append(f"Global score : {score}/100")
         nodes = report.get("cluster", {}).get("nodes", {})
-        lines.append(f"Nodes        : {nodes.get('ready', 0)}/{nodes.get('total', 0)} ready")
+        lines.append(
+            f"Nodes        : {nodes.get('ready', 0)}/{nodes.get('total', 0)} ready"
+        )
         return "\n".join(lines)
 
-    def _to_markdown(self, report: dict) -> str:
+    def _to_markdown(self, report: dict[str, Any]) -> str:
         lines = [
-            f"# Health Report",
+            "# Health Report",
             f"**Generated at**: {report.get('generated_at', '')}",
             "",
             f"## Cluster Score: {report.get('cluster', {}).get('score', 'N/A')}/100",
             "",
         ]
         nodes = report.get("cluster", {}).get("nodes", {})
-        lines.append(f"### Nodes: {nodes.get('ready', 0)}/{nodes.get('total', 0)} ready")
+        lines.append(
+            f"### Nodes: {nodes.get('ready', 0)}/{nodes.get('total', 0)} ready"
+        )
         return "\n".join(lines)
 
-    def _compute_global_score(self, nodes: dict, control_plane: dict) -> int:
+    def _compute_global_score(
+        self, nodes: dict[str, Any], control_plane: dict[str, Any]
+    ) -> int:
         score = 100
         total = nodes.get("total", 0)
         not_ready = nodes.get("not_ready", 0)
