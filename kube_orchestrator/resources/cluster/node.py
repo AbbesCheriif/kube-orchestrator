@@ -32,7 +32,9 @@ class NodeManager(BaseResourceManager[V1Node]):
 
     def get_node_info(self, name: str) -> dict[str, str]:
         node = self.get_node(name)
-        info = node.status.node_info
+        info = node.status.node_info if node.status else None
+        if info is None:
+            return {}
         return {
             "architecture": info.architecture,
             "os_image": info.os_image,
@@ -55,22 +57,22 @@ class NodeManager(BaseResourceManager[V1Node]):
                 "message": c.message,
                 "last_transition_time": str(c.last_transition_time),
             }
-            for c in (node.status.conditions or [])
+            for c in ((node.status.conditions if node.status else None) or [])
         ]
 
     def is_ready(self, name: str) -> bool:
         for cond in self.get_conditions(name):
             if cond["type"] == "Ready":
-                return cond["status"] == "True"
+                return bool(cond["status"] == "True")
         return False
 
     def get_allocatable(self, name: str) -> dict[str, str]:
         node = self.get_node(name)
-        return dict(node.status.allocatable or {})
+        return dict((node.status.allocatable if node.status else None) or {})
 
     def get_capacity(self, name: str) -> dict[str, str]:
         node = self.get_node(name)
-        return dict(node.status.capacity or {})
+        return dict((node.status.capacity if node.status else None) or {})
 
     def get_addresses(self, name: str) -> dict[str, str | None]:
         node = self.get_node(name)
@@ -79,7 +81,7 @@ class NodeManager(BaseResourceManager[V1Node]):
             "external_ip": None,
             "hostname": None,
         }
-        for addr in node.status.addresses or []:
+        for addr in (node.status.addresses if node.status else None) or []:
             if addr.type == "InternalIP":
                 result["internal_ip"] = addr.address
             elif addr.type == "ExternalIP":
@@ -92,12 +94,12 @@ class NodeManager(BaseResourceManager[V1Node]):
         node = self.get_node(name)
         return [
             {"names": img.names, "size_bytes": img.size_bytes}
-            for img in (node.status.images or [])
+            for img in ((node.status.images if node.status else None) or [])
         ]
 
     def is_schedulable(self, name: str) -> bool:
         node = self.get_node(name)
-        return not bool(node.spec.unschedulable)
+        return not bool(node.spec and node.spec.unschedulable)
 
     def get_pods(self, name: str) -> list[V1Pod]:
         result = self.client.core_v1.list_pod_for_all_namespaces(
@@ -107,7 +109,7 @@ class NodeManager(BaseResourceManager[V1Node]):
 
     def get_labels(self, name: str) -> dict[str, str]:
         node = self.get_node(name)
-        return dict(node.metadata.labels or {})
+        return dict((node.metadata.labels if node.metadata else None) or {})
 
     def set_label(self, name: str, key: str, value: str) -> V1Node:
         return self.patch(name, {"metadata": {"labels": {key: value}}})
@@ -123,11 +125,9 @@ class NodeManager(BaseResourceManager[V1Node]):
         cpu_req = 0
         mem_req = 0
         for pod in pods:
-            for container in pod.spec.containers or []:
+            for container in (pod.spec.containers if pod.spec else None) or []:
                 if container.resources and container.resources.requests:
-                    cpu_req += _parse_cpu(
-                        container.resources.requests.get("cpu", "0")
-                    )
+                    cpu_req += _parse_cpu(container.resources.requests.get("cpu", "0"))
                     mem_req += _parse_memory(
                         container.resources.requests.get("memory", "0")
                     )
@@ -136,7 +136,6 @@ class NodeManager(BaseResourceManager[V1Node]):
             "cpu_requested_millicores": cpu_req,
             "memory_requested_bytes": mem_req,
         }
-
 
     def cordon(self, name: str) -> V1Node:
         return self.patch(name, {"spec": {"unschedulable": True}})
@@ -158,9 +157,13 @@ class NodeManager(BaseResourceManager[V1Node]):
         pods = self.get_pods(name)
         evicted: list[str] = []
         for pod in pods:
-            owner_kinds = [
-                ref.kind for ref in (pod.metadata.owner_references or [])
-            ]
+            if (
+                pod.metadata is None
+                or not pod.metadata.name
+                or not pod.metadata.namespace
+            ):
+                continue
+            owner_kinds = [ref.kind for ref in (pod.metadata.owner_references or [])]
             if "DaemonSet" in owner_kinds and ignore_daemonsets:
                 continue
             if not force and not owner_kinds:
@@ -188,7 +191,9 @@ class NodeManager(BaseResourceManager[V1Node]):
         if grace_period_seconds is not None:
             body["deleteOptions"] = {"gracePeriodSeconds": grace_period_seconds}
         self.client.core_v1.create_namespaced_pod_eviction(
-            pod_name, namespace, body
+            pod_name,
+            namespace,
+            body,  # type: ignore[arg-type]  # dict body accepted at runtime
         )
 
     def wait_for_drain(self, name: str, timeout_seconds: int = 300) -> bool:
@@ -201,7 +206,12 @@ class NodeManager(BaseResourceManager[V1Node]):
                 p
                 for p in pods
                 if "DaemonSet"
-                not in [r.kind for r in (p.metadata.owner_references or [])]
+                not in [
+                    r.kind
+                    for r in (
+                        (p.metadata.owner_references if p.metadata else None) or []
+                    )
+                ]
             ]
             if not non_daemon:
                 return True
@@ -209,7 +219,7 @@ class NodeManager(BaseResourceManager[V1Node]):
         return False
 
     def get_cordoned_nodes(self) -> list[V1Node]:
-        return [n for n in self.list_nodes() if bool(n.spec.unschedulable)]
+        return [n for n in self.list_nodes() if bool(n.spec and n.spec.unschedulable)]
 
     # ── Taint management ────────────────────────────────────────────────
 
@@ -223,7 +233,7 @@ class NodeManager(BaseResourceManager[V1Node]):
         node = self.get_node(name)
         taints: list[dict[str, Any]] = [
             {"key": t.key, "value": t.value, "effect": t.effect}
-            for t in (node.spec.taints or [])
+            for t in ((node.spec.taints if node.spec else None) or [])
             if not (t.key == key and t.effect == effect)
         ]
         taint: dict[str, Any] = {"key": key, "effect": effect}
@@ -232,13 +242,11 @@ class NodeManager(BaseResourceManager[V1Node]):
         taints.append(taint)
         return self.patch(name, {"spec": {"taints": taints}})
 
-    def remove_taint(
-        self, name: str, key: str, effect: str | None = None
-    ) -> V1Node:
+    def remove_taint(self, name: str, key: str, effect: str | None = None) -> V1Node:
         node = self.get_node(name)
         taints = [
             {"key": t.key, "value": t.value, "effect": t.effect}
-            for t in (node.spec.taints or [])
+            for t in ((node.spec.taints if node.spec else None) or [])
             if not (t.key == key and (effect is None or t.effect == effect))
         ]
         return self.patch(name, {"spec": {"taints": taints}})
@@ -247,7 +255,7 @@ class NodeManager(BaseResourceManager[V1Node]):
         node = self.get_node(name)
         return [
             {"key": t.key, "value": t.value, "effect": t.effect}
-            for t in (node.spec.taints or [])
+            for t in ((node.spec.taints if node.spec else None) or [])
         ]
 
     def has_taint(self, name: str, key: str, effect: str | None = None) -> bool:
@@ -262,7 +270,9 @@ class NodeManager(BaseResourceManager[V1Node]):
         return [
             n
             for n in self.list_nodes()
-            if self.has_taint(n.metadata.name, key, effect)
+            if n.metadata
+            and n.metadata.name
+            and self.has_taint(n.metadata.name, key, effect)
         ]
 
     def remove_all_taints(self, name: str) -> V1Node:

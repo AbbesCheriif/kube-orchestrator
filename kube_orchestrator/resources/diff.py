@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import copy
+from typing import Any
 
 
-def compute_diff(current: dict, desired: dict) -> dict:
+def compute_diff(current: dict[str, Any], desired: dict[str, Any]) -> dict[str, Any]:
     """Return a dict describing fields that differ between current and desired."""
-    diff: dict = {}
+    diff: dict[str, Any] = {}
     for key in set(current) | set(desired):
         cur_val = current.get(key)
         des_val = desired.get(key)
@@ -22,7 +23,9 @@ def compute_diff(current: dict, desired: dict) -> dict:
     return diff
 
 
-def strategic_merge_patch(current: dict, patch: dict) -> dict:
+def strategic_merge_patch(
+    current: dict[str, Any], patch: dict[str, Any]
+) -> dict[str, Any]:
     """Apply a strategic merge patch to *current*, returning a new dict."""
     result = copy.deepcopy(current)
     for key, value in patch.items():
@@ -35,7 +38,7 @@ def strategic_merge_patch(current: dict, patch: dict) -> dict:
     return result
 
 
-def json_merge_patch(current: dict, patch: dict) -> dict:
+def json_merge_patch(current: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
     """Apply a JSON Merge Patch (RFC 7396) to *current*, returning a new dict."""
     result = copy.deepcopy(current)
     for key, value in patch.items():
@@ -46,12 +49,16 @@ def json_merge_patch(current: dict, patch: dict) -> dict:
     return result
 
 
-def format_diff_output(diff: dict, _indent: int = 0) -> str:
+def format_diff_output(diff: dict[str, Any], _indent: int = 0) -> str:
     """Return a human-readable representation of a compute_diff result."""
     lines: list[str] = []
     prefix = "  " * _indent
     for key, value in diff.items():
-        if isinstance(value, dict) and "current" not in value and "desired" not in value:
+        if (
+            isinstance(value, dict)
+            and "current" not in value
+            and "desired" not in value
+        ):
             lines.append(f"{prefix}{key}:")
             lines.append(format_diff_output(value, _indent + 1))
         else:
@@ -61,11 +68,13 @@ def format_diff_output(diff: dict, _indent: int = 0) -> str:
     return "\n".join(lines)
 
 
-def is_spec_changed(current: dict, desired: dict) -> bool:
+def is_spec_changed(current: dict[str, Any], desired: dict[str, Any]) -> bool:
     """Return True if the spec sections of the two manifests differ."""
     return current.get("spec") != desired.get("spec")
 
 
-def extract_managed_fields(resource: dict) -> list:
+def extract_managed_fields(resource: dict[str, Any]) -> list[Any]:
     """Return the managedFields list from the resource metadata."""
-    return resource.get("metadata", {}).get("managedFields", [])
+    metadata: dict[str, Any] = resource.get("metadata", {})
+    managed_fields: list[Any] = metadata.get("managedFields", [])
+    return managed_fields
