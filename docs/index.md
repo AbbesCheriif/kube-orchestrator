@@ -1,11 +1,12 @@
 # kube-orchestrator
 
 [![PyPI version](https://img.shields.io/pypi/v/kube-orchestrator.svg)](https://pypi.org/project/kube-orchestrator/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/kube-orchestrator.svg)](https://pypi.org/project/kube-orchestrator/)
 [![Python versions](https://img.shields.io/pypi/pyversions/kube-orchestrator.svg)](https://pypi.org/project/kube-orchestrator/)
-[![CI](https://github.com/AbbesCheriif/kube-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/AbbesCheriif/kube-orchestrator/actions)
+[![Tests](https://github.com/AbbesCheriif/kube-orchestrator/actions/workflows/tests.yml/badge.svg)](https://github.com/AbbesCheriif/kube-orchestrator/actions/workflows/tests.yml)
 [![Coverage](https://img.shields.io/codecov/c/github/AbbesCheriif/kube-orchestrator)](https://codecov.io/gh/AbbesCheriif/kube-orchestrator)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/AbbesCheriif/kube-orchestrator/blob/main/LICENSE)
 
 > A full-featured Python SDK for Kubernetes — programmatic kubectl, GitOps engine, platform engineering SDK.
 
@@ -35,6 +36,9 @@
 pip install kube-orchestrator
 ```
 
+See [Installation](installation.md) for Docker and from-source options, and
+[Quickstart](quickstart.md) for a five-minute tour of the API.
+
 ---
 
 ## Architecture
@@ -55,6 +59,13 @@ kube-orchestrator
 ├── scaling/            # ScalingEngine, ResourceWatcher
 └── cli/                # ko CLI tool
 ```
+
+---
+
+## Contributing
+
+Contributions are welcome! See [Contributing](contributing.md) for the
+development setup, branch/commit conventions and PR process.
 
 ---
 
