@@ -12,7 +12,6 @@ from typing import Any
 import yaml
 from jinja2 import Environment, StrictUndefined, Undefined
 
-
 # ------------------------------------------------------------------
 # Jinja2 filter/function helpers
 # ------------------------------------------------------------------
@@ -128,7 +127,8 @@ def load_values_file(path: str) -> dict[str, Any]:
     file_path = Path(path)
     text = file_path.read_text(encoding="utf-8")
     if file_path.suffix in (".json",):
-        return json.loads(text)
+        loaded: dict[str, Any] = json.loads(text)
+        return loaded
     result = yaml.safe_load(text)
     return result if isinstance(result, dict) else {}
 
@@ -149,9 +149,7 @@ def inject_env_vars(values: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def override_values(
-    base: dict[str, Any], overrides: dict[str, Any]
-) -> dict[str, Any]:
+def override_values(base: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
     """Return a deep-merged copy of base with overrides applied on top."""
     result: dict[str, Any] = {}
     _deep_merge(result, base)

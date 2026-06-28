@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from kubernetes import client
-from kubernetes.client.rest import ApiException
+from kubernetes.client.exceptions import ApiException
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.exceptions import parse_api_exception
@@ -18,7 +18,7 @@ class PodDisruptionBudgetManager(BaseResourceManager[client.V1PodDisruptionBudge
 
     def __init__(
         self,
-        kube_client: "KubeClient | None" = None,
+        kube_client: KubeClient | None = None,
         default_namespace: str = "default",
         dry_run: bool = False,
     ) -> None:
@@ -29,6 +29,9 @@ class PodDisruptionBudgetManager(BaseResourceManager[client.V1PodDisruptionBudge
 
     def _kind(self) -> str:
         return "PodDisruptionBudget"
+
+    def _resource_name(self) -> str:
+        return "pod_disruption_budget"
 
     def _api_version(self) -> str:
         return "policy/v1"
@@ -41,7 +44,7 @@ class PodDisruptionBudgetManager(BaseResourceManager[client.V1PodDisruptionBudge
         self,
         name: str,
         namespace: str | None = None,
-        selector: dict | None = None,
+        selector: dict[str, Any] | None = None,
         min_available: int | str | None = None,
         max_unavailable: int | str | None = None,
         unhealthy_pod_eviction_policy: str | None = None,
@@ -70,7 +73,7 @@ class PodDisruptionBudgetManager(BaseResourceManager[client.V1PodDisruptionBudge
         try:
             return self.client.policy_v1.create_namespaced_pod_disruption_budget(
                 namespace=ns,
-                body=manifest,
+                body=manifest,  # type: ignore[arg-type]  # dict body accepted at runtime
                 dry_run=self.dry_run,
             )
         except ApiException as exc:
@@ -125,9 +128,7 @@ class PodDisruptionBudgetManager(BaseResourceManager[client.V1PodDisruptionBudge
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
 
-    def delete_pdb(
-        self, name: str, namespace: str | None = None
-    ) -> None:
+    def delete_pdb(self, name: str, namespace: str | None = None) -> None:
         ns = namespace or self.default_namespace
         try:
             self.client.policy_v1.delete_namespaced_pod_disruption_budget(
@@ -142,9 +143,7 @@ class PodDisruptionBudgetManager(BaseResourceManager[client.V1PodDisruptionBudge
     # Status helpers
     # ------------------------------------------------------------------
 
-    def get_status(
-        self, name: str, namespace: str | None = None
-    ) -> dict:
+    def get_status(self, name: str, namespace: str | None = None) -> dict[str, Any]:
         pdb = self.get_pdb(name, namespace)
         status = pdb.status
         return {
@@ -153,19 +152,19 @@ class PodDisruptionBudgetManager(BaseResourceManager[client.V1PodDisruptionBudge
             "disruptions_allowed": (status.disruptions_allowed or 0) if status else 0,
             "expected_pods": (status.expected_pods or 0) if status else 0,
             "observed_generation": (status.observed_generation or 0) if status else 0,
-            "conditions": [
-                c.to_dict() if hasattr(c, "to_dict") else c
-                for c in (status.conditions or [])
-            ] if status else [],
+            "conditions": (
+                [
+                    c.to_dict() if hasattr(c, "to_dict") else c
+                    for c in (status.conditions or [])
+                ]
+                if status
+                else []
+            ),
         }
 
-    def get_disruptions_allowed(
-        self, name: str, namespace: str | None = None
-    ) -> int:
+    def get_disruptions_allowed(self, name: str, namespace: str | None = None) -> int:
         pdb = self.get_pdb(name, namespace)
         return (pdb.status.disruptions_allowed or 0) if pdb.status else 0
 
-    def is_disruption_allowed(
-        self, name: str, namespace: str | None = None
-    ) -> bool:
+    def is_disruption_allowed(self, name: str, namespace: str | None = None) -> bool:
         return self.get_disruptions_allowed(name, namespace) > 0

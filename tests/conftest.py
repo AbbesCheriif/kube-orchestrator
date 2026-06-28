@@ -1,4 +1,5 @@
 """Root test fixtures shared across all test modules."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -53,7 +54,11 @@ def sample_pod_manifest() -> dict:
         "metadata": {"name": "test-pod", "namespace": "default"},
         "spec": {
             "containers": [
-                {"name": "app", "image": "nginx:latest", "ports": [{"containerPort": 80}]}
+                {
+                    "name": "app",
+                    "image": "nginx:latest",
+                    "ports": [{"containerPort": 80}],
+                }
             ]
         },
     }
@@ -70,9 +75,7 @@ def sample_deployment_manifest() -> dict:
             "selector": {"matchLabels": {"app": "test"}},
             "template": {
                 "metadata": {"labels": {"app": "test"}},
-                "spec": {
-                    "containers": [{"name": "app", "image": "nginx:latest"}]
-                },
+                "spec": {"containers": [{"name": "app", "image": "nginx:latest"}]},
             },
         },
     }

@@ -26,7 +26,7 @@ class KubeClient:
     # ------------------------------------------------------------------
 
     @classmethod
-    def get_instance(cls) -> "KubeClient":
+    def get_instance(cls) -> KubeClient:
         """Return (and lazily create) the process-wide singleton."""
         if cls._instance is None:
             cls._instance = cls()
@@ -94,3 +94,11 @@ class KubeClient:
     @property
     def events_v1(self) -> client.EventsV1Api:
         return client.EventsV1Api(api_client=self._api_client)
+
+    @property
+    def discovery_v1(self) -> client.DiscoveryV1Api:
+        return client.DiscoveryV1Api(api_client=self._api_client)
+
+    @property
+    def node_v1(self) -> client.NodeV1Api:
+        return client.NodeV1Api(api_client=self._api_client)

@@ -5,10 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from kubernetes import client
-from kubernetes.client.rest import ApiException
 
 from kube_orchestrator.core.client import KubeClient
-from kube_orchestrator.core.exceptions import parse_api_exception
 from kube_orchestrator.resources.base import BaseResourceManager
 from kube_orchestrator.resources.helpers import build_metadata
 
@@ -18,7 +16,7 @@ class HPAManager(BaseResourceManager[client.V2HorizontalPodAutoscaler]):
 
     def __init__(
         self,
-        kube_client: "KubeClient | None" = None,
+        kube_client: KubeClient | None = None,
         default_namespace: str = "default",
         dry_run: bool = False,
     ) -> None:

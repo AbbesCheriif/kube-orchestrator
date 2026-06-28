@@ -5,10 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from kubernetes import client
-from kubernetes.client.rest import ApiException
 
 from kube_orchestrator.core.client import KubeClient
-from kube_orchestrator.core.exceptions import parse_api_exception
 from kube_orchestrator.resources.base import BaseResourceManager
 from kube_orchestrator.resources.helpers import build_metadata
 
@@ -18,7 +16,7 @@ class RuntimeClassManager(BaseResourceManager[client.V1RuntimeClass]):
 
     def __init__(
         self,
-        kube_client: "KubeClient | None" = None,
+        kube_client: KubeClient | None = None,
         dry_run: bool = False,
     ) -> None:
         super().__init__(kube_client, "", dry_run)
@@ -28,6 +26,9 @@ class RuntimeClassManager(BaseResourceManager[client.V1RuntimeClass]):
 
     def _kind(self) -> str:
         return "RuntimeClass"
+
+    def _resource_name(self) -> str:
+        return "runtime_class"
 
     def _api_version(self) -> str:
         return "node.k8s.io/v1"
@@ -69,7 +70,7 @@ class LeaseManager(BaseResourceManager[client.V1Lease]):
 
     def __init__(
         self,
-        kube_client: "KubeClient | None" = None,
+        kube_client: KubeClient | None = None,
         default_namespace: str = "kube-system",
         dry_run: bool = False,
     ) -> None:
@@ -100,7 +101,9 @@ class LeaseManager(BaseResourceManager[client.V1Lease]):
     def delete_lease(self, name: str, namespace: str | None = None) -> None:
         self.delete(name, namespace or self.default_namespace)
 
-    def get_holder_identity(self, name: str, namespace: str | None = None) -> str | None:
+    def get_holder_identity(
+        self, name: str, namespace: str | None = None
+    ) -> str | None:
         lease = self.get_lease(name, namespace)
         if lease.spec:
             return lease.spec.holder_identity

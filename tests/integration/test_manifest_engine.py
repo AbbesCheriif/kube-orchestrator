@@ -1,10 +1,10 @@
 """Integration tests for the manifest engine (directory apply)."""
+
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
-
 
 EXAMPLES_FULL_APP = Path(__file__).parent.parent.parent / "examples" / "full-app"
 
@@ -19,8 +19,12 @@ class TestManifestEngine:
 
         from kube_orchestrator.manifest.applier import ManifestApplier
 
-        applier = ManifestApplier(client=kube_client, dry_run=True, force=False, server_side=False)
-        results = applier.apply_directory(str(EXAMPLES_FULL_APP), namespace=test_namespace, recursive=False)
+        applier = ManifestApplier(
+            client=kube_client, dry_run=True, force=False, server_side=False
+        )
+        results = applier.apply_directory(
+            str(EXAMPLES_FULL_APP), namespace=test_namespace, recursive=False
+        )
         assert len(results) > 0
         assert all(r.get("dry_run") is True for r in results)
 
@@ -43,7 +47,11 @@ class TestManifestEngine:
         from kube_orchestrator.manifest.validator import order_by_dependency
 
         manifests = [
-            {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "app"}},
+            {
+                "apiVersion": "apps/v1",
+                "kind": "Deployment",
+                "metadata": {"name": "app"},
+            },
             {"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"name": "config"}},
             {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": "my-ns"}},
         ]

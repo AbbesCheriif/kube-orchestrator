@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any, cast
 
-from kubernetes import client, watch
-from kubernetes.client.rest import ApiException
+from kubernetes import (  # type: ignore[attr-defined]  # kubernetes-stubs has no watch submodule stub
+    client,
+    watch,
+)
+from kubernetes.client.exceptions import ApiException
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.exceptions import parse_api_exception
@@ -45,10 +49,12 @@ class CustomObjectManager:
         """Create a custom resource, cluster-scoped or namespace-scoped."""
         try:
             if namespace:
-                return self._api().create_namespaced_custom_object(
+                # kubernetes-stubs incorrectly types these as returning None;
+                # the API always returns the created object.
+                return self._api().create_namespaced_custom_object(  # type: ignore[return-value, func-returns-value]
                     self.group, self.version, namespace, self.plural, manifest
                 )
-            return self._api().create_cluster_custom_object(
+            return self._api().create_cluster_custom_object(  # type: ignore[return-value, func-returns-value]
                 self.group, self.version, self.plural, manifest
             )
         except ApiException as exc:
@@ -62,11 +68,17 @@ class CustomObjectManager:
         """Fetch a single custom resource by name."""
         try:
             if namespace:
-                return self._api().get_namespaced_custom_object(
-                    self.group, self.version, namespace, self.plural, name
+                return cast(
+                    "dict[str, Any]",
+                    self._api().get_namespaced_custom_object(
+                        self.group, self.version, namespace, self.plural, name
+                    ),
                 )
-            return self._api().get_cluster_custom_object(
-                self.group, self.version, self.plural, name
+            return cast(
+                "dict[str, Any]",
+                self._api().get_cluster_custom_object(
+                    self.group, self.version, self.plural, name
+                ),
             )
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
@@ -89,7 +101,7 @@ class CustomObjectManager:
                 result = self._api().list_cluster_custom_object(
                     self.group, self.version, self.plural, **kwargs
                 )
-            return result.get("items", [])
+            return cast("list[dict[str, Any]]", result.get("items", []))
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
 
@@ -102,11 +114,17 @@ class CustomObjectManager:
         """Replace a custom resource entirely."""
         try:
             if namespace:
-                return self._api().replace_namespaced_custom_object(
-                    self.group, self.version, namespace, self.plural, name, manifest
+                return cast(
+                    "dict[str, Any]",
+                    self._api().replace_namespaced_custom_object(
+                        self.group, self.version, namespace, self.plural, name, manifest
+                    ),
                 )
-            return self._api().replace_cluster_custom_object(
-                self.group, self.version, self.plural, name, manifest
+            return cast(
+                "dict[str, Any]",
+                self._api().replace_cluster_custom_object(
+                    self.group, self.version, self.plural, name, manifest
+                ),
             )
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
@@ -120,11 +138,17 @@ class CustomObjectManager:
         """Apply a merge patch to a custom resource."""
         try:
             if namespace:
-                return self._api().patch_namespaced_custom_object(
-                    self.group, self.version, namespace, self.plural, name, patch
+                return cast(
+                    "dict[str, Any]",
+                    self._api().patch_namespaced_custom_object(
+                        self.group, self.version, namespace, self.plural, name, patch
+                    ),
                 )
-            return self._api().patch_cluster_custom_object(
-                self.group, self.version, self.plural, name, patch
+            return cast(
+                "dict[str, Any]",
+                self._api().patch_cluster_custom_object(
+                    self.group, self.version, self.plural, name, patch
+                ),
             )
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
@@ -174,12 +198,17 @@ class CustomObjectManager:
         if namespace:
             stream = w.stream(
                 api.list_namespaced_custom_object,
-                self.group, self.version, namespace, self.plural,
+                self.group,
+                self.version,
+                namespace,
+                self.plural,
             )
         else:
             stream = w.stream(
                 api.list_cluster_custom_object,
-                self.group, self.version, self.plural,
+                self.group,
+                self.version,
+                self.plural,
             )
         for event in stream:
             if callback:

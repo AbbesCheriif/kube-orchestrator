@@ -6,7 +6,7 @@ import time
 from typing import Any
 
 from kubernetes import client
-from kubernetes.client.rest import ApiException
+from kubernetes.client.exceptions import ApiException
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.exceptions import ResourceNotFoundError, parse_api_exception
@@ -18,7 +18,7 @@ class ReplicaSetManager(BaseResourceManager[client.V1ReplicaSet]):
 
     def __init__(
         self,
-        kube_client: "KubeClient | None" = None,
+        kube_client: KubeClient | None = None,
         default_namespace: str = "default",
         dry_run: bool = False,
     ) -> None:
@@ -29,6 +29,9 @@ class ReplicaSetManager(BaseResourceManager[client.V1ReplicaSet]):
 
     def _kind(self) -> str:
         return "ReplicaSet"
+
+    def _resource_name(self) -> str:
+        return "replica_set"
 
     def _api_version(self) -> str:
         return "apps/v1"
@@ -42,8 +45,8 @@ class ReplicaSetManager(BaseResourceManager[client.V1ReplicaSet]):
         name: str,
         namespace: str | None = None,
         replicas: int = 1,
-        selector: dict | None = None,
-        pod_template: dict | None = None,
+        selector: dict[str, Any] | None = None,
+        pod_template: dict[str, Any] | None = None,
         min_ready_seconds: int | None = None,
         labels: dict[str, str] | None = None,
     ) -> client.V1ReplicaSet:
@@ -114,9 +117,7 @@ class ReplicaSetManager(BaseResourceManager[client.V1ReplicaSet]):
     # Related resources
     # ------------------------------------------------------------------
 
-    def get_pods(
-        self, name: str, namespace: str | None = None
-    ) -> list[client.V1Pod]:
+    def get_pods(self, name: str, namespace: str | None = None) -> list[client.V1Pod]:
         ns = namespace or self.default_namespace
         rs = self.get_replicaset(name, ns)
         match_labels = (
@@ -168,8 +169,7 @@ class ReplicaSetManager(BaseResourceManager[client.V1ReplicaSet]):
             for rs in all_rs
             if not rs.metadata
             or not any(
-                ref.kind == "Deployment"
-                for ref in (rs.metadata.owner_references or [])
+                ref.kind == "Deployment" for ref in (rs.metadata.owner_references or [])
             )
         ]
 

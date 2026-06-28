@@ -31,19 +31,19 @@ class StatefulSetBuilder:
     # Replica and service helpers
     # ------------------------------------------------------------------
 
-    def with_replicas(self, count: int) -> "StatefulSetBuilder":
+    def with_replicas(self, count: int) -> StatefulSetBuilder:
         self._spec["replicas"] = count
         return self
 
-    def with_service_name(self, name: str) -> "StatefulSetBuilder":
+    def with_service_name(self, name: str) -> StatefulSetBuilder:
         self._spec["serviceName"] = name
         return self
 
     def with_selector(
         self,
         match_labels: dict[str, str],
-        match_expressions: list[dict] | None = None,
-    ) -> "StatefulSetBuilder":
+        match_expressions: list[dict[str, Any]] | None = None,
+    ) -> StatefulSetBuilder:
         self._selector = {"matchLabels": match_labels}
         if match_expressions:
             self._selector["matchExpressions"] = match_expressions
@@ -53,7 +53,7 @@ class StatefulSetBuilder:
     # Pod management policy
     # ------------------------------------------------------------------
 
-    def with_pod_management_policy(self, policy: str) -> "StatefulSetBuilder":
+    def with_pod_management_policy(self, policy: str) -> StatefulSetBuilder:
         self._spec["podManagementPolicy"] = policy
         return self
 
@@ -65,7 +65,7 @@ class StatefulSetBuilder:
         self,
         max_unavailable: int | str | None = None,
         partition: int = 0,
-    ) -> "StatefulSetBuilder":
+    ) -> StatefulSetBuilder:
         rolling: dict[str, Any] = {"partition": partition}
         if max_unavailable is not None:
             rolling["maxUnavailable"] = max_unavailable
@@ -75,7 +75,7 @@ class StatefulSetBuilder:
         }
         return self
 
-    def with_on_delete_strategy(self) -> "StatefulSetBuilder":
+    def with_on_delete_strategy(self) -> StatefulSetBuilder:
         self._update_strategy = {"type": "OnDelete"}
         return self
 
@@ -83,15 +83,15 @@ class StatefulSetBuilder:
     # Rollout control helpers
     # ------------------------------------------------------------------
 
-    def with_revision_history_limit(self, limit: int) -> "StatefulSetBuilder":
+    def with_revision_history_limit(self, limit: int) -> StatefulSetBuilder:
         self._spec["revisionHistoryLimit"] = limit
         return self
 
-    def with_min_ready_seconds(self, seconds: int) -> "StatefulSetBuilder":
+    def with_min_ready_seconds(self, seconds: int) -> StatefulSetBuilder:
         self._spec["minReadySeconds"] = seconds
         return self
 
-    def with_ordinals(self, start: int) -> "StatefulSetBuilder":
+    def with_ordinals(self, start: int) -> StatefulSetBuilder:
         self._spec["ordinals"] = {"start": start}
         return self
 
@@ -99,7 +99,7 @@ class StatefulSetBuilder:
         self,
         when_deleted: str = "Retain",
         when_scaled: str = "Retain",
-    ) -> "StatefulSetBuilder":
+    ) -> StatefulSetBuilder:
         self._spec["persistentVolumeClaimRetentionPolicy"] = {
             "whenDeleted": when_deleted,
             "whenScaled": when_scaled,
@@ -117,8 +117,8 @@ class StatefulSetBuilder:
         access_modes: list[str],
         storage_class_name: str | None = None,
         volume_mode: str | None = None,
-        selector: dict | None = None,
-    ) -> "StatefulSetBuilder":
+        selector: dict[str, Any] | None = None,
+    ) -> StatefulSetBuilder:
         pvc_spec: dict[str, Any] = {
             "accessModes": access_modes,
             "resources": {"requests": {"storage": storage}},
@@ -142,7 +142,7 @@ class StatefulSetBuilder:
     # Pod template helper
     # ------------------------------------------------------------------
 
-    def with_pod_template(self, pod_builder: PodBuilder) -> "StatefulSetBuilder":
+    def with_pod_template(self, pod_builder: PodBuilder) -> StatefulSetBuilder:
         pod_manifest = pod_builder.build()
         self._pod_template = {
             "metadata": pod_manifest.get("metadata", {}),
@@ -154,7 +154,7 @@ class StatefulSetBuilder:
     # Build
     # ------------------------------------------------------------------
 
-    def build(self) -> dict:
+    def build(self) -> dict[str, Any]:
         metadata: dict[str, Any] = {
             "name": self._name,
             "namespace": self._namespace,

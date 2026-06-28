@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from kubernetes import client
-from kubernetes.client.rest import ApiException
+from kubernetes.client.exceptions import ApiException
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.exceptions import ResourceNotFoundError, parse_api_exception
@@ -19,7 +19,7 @@ class DaemonSetManager(BaseResourceManager[client.V1DaemonSet]):
 
     def __init__(
         self,
-        kube_client: "KubeClient | None" = None,
+        kube_client: KubeClient | None = None,
         default_namespace: str = "default",
         dry_run: bool = False,
     ) -> None:
@@ -45,9 +45,9 @@ class DaemonSetManager(BaseResourceManager[client.V1DaemonSet]):
         self,
         name: str,
         namespace: str | None = None,
-        selector: dict | None = None,
-        pod_template: dict | None = None,
-        update_strategy: dict | None = None,
+        selector: dict[str, Any] | None = None,
+        pod_template: dict[str, Any] | None = None,
+        update_strategy: dict[str, Any] | None = None,
         min_ready_seconds: int | None = None,
         revision_history_limit: int | None = None,
         labels: dict[str, str] | None = None,
@@ -92,7 +92,7 @@ class DaemonSetManager(BaseResourceManager[client.V1DaemonSet]):
         self,
         name: str,
         namespace: str | None = None,
-        manifest: dict | None = None,
+        manifest: dict[str, Any] | None = None,
     ) -> client.V1DaemonSet:
         return self.update(name, manifest or {}, namespace)
 
@@ -131,9 +131,7 @@ class DaemonSetManager(BaseResourceManager[client.V1DaemonSet]):
     def set_on_delete_strategy(
         self, name: str, namespace: str | None = None
     ) -> client.V1DaemonSet:
-        patch: dict[str, Any] = {
-            "spec": {"updateStrategy": {"type": "OnDelete"}}
-        }
+        patch: dict[str, Any] = {"spec": {"updateStrategy": {"type": "OnDelete"}}}
         return self.patch(name, patch, namespace, "merge")
 
     # ------------------------------------------------------------------
@@ -157,9 +155,7 @@ class DaemonSetManager(BaseResourceManager[client.V1DaemonSet]):
             if c.name == container_name:
                 c.image = image
                 break
-        return self.update_daemonset(
-            name, namespace, ds.to_dict() if hasattr(ds, "to_dict") else {}
-        )
+        return self.update_daemonset(name, namespace, dict(ds.to_dict()))
 
     # ------------------------------------------------------------------
     # Scheduling helpers
@@ -172,11 +168,7 @@ class DaemonSetManager(BaseResourceManager[client.V1DaemonSet]):
         labels: dict[str, str] | None = None,
     ) -> client.V1DaemonSet:
         patch: dict[str, Any] = {
-            "spec": {
-                "template": {
-                    "spec": {"nodeSelector": labels or {}}
-                }
-            }
+            "spec": {"template": {"spec": {"nodeSelector": labels or {}}}}
         }
         return self.patch(name, patch, namespace, "merge")
 
@@ -199,17 +191,14 @@ class DaemonSetManager(BaseResourceManager[client.V1DaemonSet]):
         if toleration_seconds is not None:
             tol["tolerationSeconds"] = toleration_seconds
 
-        existing: list[dict] = []
+        existing: list[dict[str, Any]] = []
         if (
             ds.spec
             and ds.spec.template
             and ds.spec.template.spec
             and ds.spec.template.spec.tolerations
         ):
-            existing = [
-                t.to_dict() if hasattr(t, "to_dict") else t
-                for t in ds.spec.template.spec.tolerations
-            ]
+            existing = [dict(t.to_dict()) for t in ds.spec.template.spec.tolerations]
         existing.append(tol)
 
         patch: dict[str, Any] = {
@@ -221,15 +210,11 @@ class DaemonSetManager(BaseResourceManager[client.V1DaemonSet]):
     # Status helpers
     # ------------------------------------------------------------------
 
-    def get_desired_scheduled(
-        self, name: str, namespace: str | None = None
-    ) -> int:
+    def get_desired_scheduled(self, name: str, namespace: str | None = None) -> int:
         ds = self.get_daemonset(name, namespace)
         return (ds.status.desired_number_scheduled or 0) if ds.status else 0
 
-    def get_number_ready(
-        self, name: str, namespace: str | None = None
-    ) -> int:
+    def get_number_ready(self, name: str, namespace: str | None = None) -> int:
         ds = self.get_daemonset(name, namespace)
         return (ds.status.number_ready or 0) if ds.status else 0
 
@@ -241,9 +226,7 @@ class DaemonSetManager(BaseResourceManager[client.V1DaemonSet]):
         match_labels = (
             ds.spec.selector.match_labels if ds.spec and ds.spec.selector else {}
         )
-        label_selector = ",".join(
-            f"{k}={v}" for k, v in (match_labels or {}).items()
-        )
+        label_selector = ",".join(f"{k}={v}" for k, v in (match_labels or {}).items())
         try:
             result = self.client.core_v1.list_namespaced_pod(
                 namespace=ns, label_selector=label_selector
@@ -260,24 +243,32 @@ class DaemonSetManager(BaseResourceManager[client.V1DaemonSet]):
 
     def get_rollout_status(
         self, name: str, namespace: str | None = None
-    ) -> dict:
+    ) -> dict[str, Any]:
         ds = self.get_daemonset(name, namespace)
         status = ds.status
         desired = (status.desired_number_scheduled or 0) if status else 0
         return {
             "desired_number_scheduled": desired,
-            "current_number_scheduled": (status.current_number_scheduled or 0) if status else 0,
+            "current_number_scheduled": (
+                (status.current_number_scheduled or 0) if status else 0
+            ),
             "number_ready": (status.number_ready or 0) if status else 0,
             "number_available": (status.number_available or 0) if status else 0,
             "number_unavailable": (status.number_unavailable or 0) if status else 0,
-            "updated_number_scheduled": (status.updated_number_scheduled or 0) if status else 0,
-            "number_misscheduled": (status.number_mis_scheduled or 0) if status else 0,
+            "updated_number_scheduled": (
+                (status.updated_number_scheduled or 0) if status else 0
+            ),
+            "number_misscheduled": (status.number_misscheduled or 0) if status else 0,
             "observed_generation": (status.observed_generation or 0) if status else 0,
             "fully_rolled_out": (
-                desired > 0
-                and (status.number_ready or 0) == desired
-                and (status.updated_number_scheduled or 0) == desired
-            ) if status else False,
+                (
+                    desired > 0
+                    and (status.number_ready or 0) == desired
+                    and (status.updated_number_scheduled or 0) == desired
+                )
+                if status
+                else False
+            ),
         }
 
     def wait_for_rollout(
@@ -301,9 +292,7 @@ class DaemonSetManager(BaseResourceManager[client.V1DaemonSet]):
     # Restart
     # ------------------------------------------------------------------
 
-    def restart(
-        self, name: str, namespace: str | None = None
-    ) -> client.V1DaemonSet:
+    def restart(self, name: str, namespace: str | None = None) -> client.V1DaemonSet:
         now = datetime.now(timezone.utc).isoformat()
         patch: dict[str, Any] = {
             "spec": {

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Any
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.logging import get_logger
@@ -8,26 +9,28 @@ from kube_orchestrator.core.logging import get_logger
 
 class ScalingStrategy(ABC):
     @abstractmethod
-    def should_scale_up(self, metrics: dict) -> bool: ...
+    def should_scale_up(self, metrics: dict[str, Any]) -> bool: ...
 
     @abstractmethod
-    def should_scale_down(self, metrics: dict) -> bool: ...
+    def should_scale_down(self, metrics: dict[str, Any]) -> bool: ...
 
     @abstractmethod
-    def get_desired_replicas(self, current: int, metrics: dict) -> int: ...
+    def get_desired_replicas(self, current: int, metrics: dict[str, Any]) -> int: ...
 
 
 class CPUScalingStrategy(ScalingStrategy):
     def __init__(self, target_cpu_utilization: int = 70) -> None:
         self.target_cpu_utilization = target_cpu_utilization
 
-    def should_scale_up(self, metrics: dict) -> bool:
-        return metrics.get("cpu_utilization", 0) > self.target_cpu_utilization
+    def should_scale_up(self, metrics: dict[str, Any]) -> bool:
+        return bool(metrics.get("cpu_utilization", 0) > self.target_cpu_utilization)
 
-    def should_scale_down(self, metrics: dict) -> bool:
-        return metrics.get("cpu_utilization", 0) < self.target_cpu_utilization * 0.5
+    def should_scale_down(self, metrics: dict[str, Any]) -> bool:
+        return bool(
+            metrics.get("cpu_utilization", 0) < self.target_cpu_utilization * 0.5
+        )
 
-    def get_desired_replicas(self, current: int, metrics: dict) -> int:
+    def get_desired_replicas(self, current: int, metrics: dict[str, Any]) -> int:
         utilization = metrics.get("cpu_utilization", self.target_cpu_utilization)
         if utilization == 0:
             return max(1, current - 1)
@@ -41,15 +44,15 @@ class MemoryScalingStrategy(ScalingStrategy):
         self.target_memory_average = target_memory_average
         self._target_bytes = self._parse_memory(target_memory_average)
 
-    def should_scale_up(self, metrics: dict) -> bool:
+    def should_scale_up(self, metrics: dict[str, Any]) -> bool:
         avg_bytes = metrics.get("memory_bytes", 0)
-        return avg_bytes > self._target_bytes * 0.9
+        return bool(avg_bytes > self._target_bytes * 0.9)
 
-    def should_scale_down(self, metrics: dict) -> bool:
+    def should_scale_down(self, metrics: dict[str, Any]) -> bool:
         avg_bytes = metrics.get("memory_bytes", 0)
-        return avg_bytes < self._target_bytes * 0.4
+        return bool(avg_bytes < self._target_bytes * 0.4)
 
-    def get_desired_replicas(self, current: int, metrics: dict) -> int:
+    def get_desired_replicas(self, current: int, metrics: dict[str, Any]) -> int:
         avg_bytes = metrics.get("memory_bytes", self._target_bytes)
         if avg_bytes == 0:
             return max(1, current - 1)
@@ -71,13 +74,13 @@ class CustomMetricStrategy(ScalingStrategy):
         self.metric_name = metric_name
         self.target_value = target_value
 
-    def should_scale_up(self, metrics: dict) -> bool:
-        return metrics.get(self.metric_name, 0) > self.target_value
+    def should_scale_up(self, metrics: dict[str, Any]) -> bool:
+        return bool(metrics.get(self.metric_name, 0) > self.target_value)
 
-    def should_scale_down(self, metrics: dict) -> bool:
-        return metrics.get(self.metric_name, 0) < self.target_value * 0.5
+    def should_scale_down(self, metrics: dict[str, Any]) -> bool:
+        return bool(metrics.get(self.metric_name, 0) < self.target_value * 0.5)
 
-    def get_desired_replicas(self, current: int, metrics: dict) -> int:
+    def get_desired_replicas(self, current: int, metrics: dict[str, Any]) -> int:
         value = metrics.get(self.metric_name, self.target_value)
         if value == 0:
             return max(1, current - 1)
@@ -96,7 +99,7 @@ class ScalingEngine:
         namespace: str,
         kind: str,
         strategy: ScalingStrategy,
-        metrics: dict | None = None,
+        metrics: dict[str, Any] | None = None,
     ) -> None:
         metrics = metrics or {}
         try:
@@ -149,6 +152,7 @@ class ScalingEngine:
 
     def _get_replicas(self, target_name: str, namespace: str, kind: str) -> int:
         kind_lower = kind.lower()
+        obj: Any
         if kind_lower == "deployment":
             obj = self._client.apps_v1.read_namespaced_deployment(
                 target_name, namespace

@@ -3,16 +3,17 @@
 from __future__ import annotations
 
 import time
+from contextlib import suppress
 from typing import Any
 
 from kubernetes.client import CoreV1Api, V1Namespace
-from kubernetes.client.rest import ApiException
+from kubernetes.client.exceptions import ApiException
 
 from kube_orchestrator.core.exceptions import ResourceNotFoundError, parse_api_exception
 from kube_orchestrator.resources.base import BaseResourceManager
-from kube_orchestrator.resources.helpers import build_metadata
-from kube_orchestrator.resources.cluster.resource_quota import ResourceQuotaManager
 from kube_orchestrator.resources.cluster.limit_range import LimitRangeManager
+from kube_orchestrator.resources.cluster.resource_quota import ResourceQuotaManager
+from kube_orchestrator.resources.helpers import build_metadata
 
 
 class NamespaceManager(BaseResourceManager[V1Namespace]):
@@ -30,8 +31,8 @@ class NamespaceManager(BaseResourceManager[V1Namespace]):
     def create_namespace(
         self,
         name: str,
-        labels: dict | None = None,
-        annotations: dict | None = None,
+        labels: dict[str, Any] | None = None,
+        annotations: dict[str, Any] | None = None,
         finalizers: list[str] | None = None,
     ) -> V1Namespace:
         manifest: dict[str, Any] = {
@@ -70,15 +71,15 @@ class NamespaceManager(BaseResourceManager[V1Namespace]):
     ) -> None:
         self.delete(name, grace_period_seconds=grace_period_seconds)
 
-    def label_namespace(self, name: str, labels: dict) -> V1Namespace:
+    def label_namespace(self, name: str, labels: dict[str, Any]) -> V1Namespace:
         ns = self.get_namespace(name)
-        existing = dict(ns.metadata.labels or {})
+        existing = dict((ns.metadata.labels if ns.metadata else None) or {})
         existing.update(labels)
         return self.patch(name, {"metadata": {"labels": existing}})
 
-    def annotate_namespace(self, name: str, annotations: dict) -> V1Namespace:
+    def annotate_namespace(self, name: str, annotations: dict[str, Any]) -> V1Namespace:
         ns = self.get_namespace(name)
-        existing = dict(ns.metadata.annotations or {})
+        existing = dict((ns.metadata.annotations if ns.metadata else None) or {})
         existing.update(annotations)
         return self.patch(name, {"metadata": {"annotations": existing}})
 
@@ -97,7 +98,9 @@ class NamespaceManager(BaseResourceManager[V1Namespace]):
 
     def get_phase(self, name: str) -> str:
         ns = self.get_namespace(name)
-        return ns.status.phase if ns.status else "Unknown"
+        if ns.status and ns.status.phase:
+            return ns.status.phase
+        return "Unknown"
 
     def wait_for_active(self, name: str, timeout_seconds: int = 60) -> bool:
         deadline = time.monotonic() + timeout_seconds
@@ -118,14 +121,14 @@ class NamespaceManager(BaseResourceManager[V1Namespace]):
             time.sleep(2)
         return False
 
-    def get_resource_usage(self, name: str) -> dict:
+    def get_resource_usage(self, name: str) -> dict[str, Any]:
         """Return ResourceQuota hard/used stats for each quota in the namespace."""
         api = self._get_api()
         try:
             quotas = api.list_namespaced_resource_quota(namespace=name)
             usage: dict[str, Any] = {}
             for quota in quotas.items:
-                if quota.status:
+                if quota.status and quota.metadata and quota.metadata.name:
                     usage[quota.metadata.name] = {
                         "hard": dict(quota.status.hard or {}),
                         "used": dict(quota.status.used or {}),
@@ -134,7 +137,7 @@ class NamespaceManager(BaseResourceManager[V1Namespace]):
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
 
-    def get_all_resources(self, name: str) -> dict[str, list]:
+    def get_all_resources(self, name: str) -> dict[str, list[Any]]:
         """Return all namespaced resources grouped by type.
 
         Covers workloads, services, configmaps, secrets, and PVCs.
@@ -142,7 +145,7 @@ class NamespaceManager(BaseResourceManager[V1Namespace]):
         modules are implemented in later days.
         """
         api = self._get_api()
-        result: dict[str, list] = {
+        result: dict[str, list[Any]] = {
             "pods": [],
             "deployments": [],
             "statefulsets": [],
@@ -162,34 +165,58 @@ class NamespaceManager(BaseResourceManager[V1Namespace]):
             result["services"] = api.list_namespaced_service(namespace=name).items
             result["configmaps"] = api.list_namespaced_config_map(namespace=name).items
             result["secrets"] = api.list_namespaced_secret(namespace=name).items
-            result["persistentvolumeclaims"] = api.list_namespaced_persistent_volume_claim(namespace=name).items
-            result["resourcequotas"] = api.list_namespaced_resource_quota(namespace=name).items
-            result["limitranges"] = api.list_namespaced_limit_range(namespace=name).items
+            result["persistentvolumeclaims"] = (
+                api.list_namespaced_persistent_volume_claim(namespace=name).items
+            )
+            result["resourcequotas"] = api.list_namespaced_resource_quota(
+                namespace=name
+            ).items
+            result["limitranges"] = api.list_namespaced_limit_range(
+                namespace=name
+            ).items
 
             apps_api = self.client.apps_v1
-            result["deployments"] = apps_api.list_namespaced_deployment(namespace=name).items
-            result["statefulsets"] = apps_api.list_namespaced_stateful_set(namespace=name).items
-            result["daemonsets"] = apps_api.list_namespaced_daemon_set(namespace=name).items
-            result["replicasets"] = apps_api.list_namespaced_replica_set(namespace=name).items
+            result["deployments"] = apps_api.list_namespaced_deployment(
+                namespace=name
+            ).items
+            result["statefulsets"] = apps_api.list_namespaced_stateful_set(
+                namespace=name
+            ).items
+            result["daemonsets"] = apps_api.list_namespaced_daemon_set(
+                namespace=name
+            ).items
+            result["replicasets"] = apps_api.list_namespaced_replica_set(
+                namespace=name
+            ).items
 
             batch_api = self.client.batch_v1
             result["jobs"] = batch_api.list_namespaced_job(namespace=name).items
-            result["cronjobs"] = batch_api.list_namespaced_cron_job(namespace=name).items
+            result["cronjobs"] = batch_api.list_namespaced_cron_job(
+                namespace=name
+            ).items
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
         return result
 
     def clone_namespace_config(self, source: str, dest: str) -> None:
         """Copy ResourceQuotas and LimitRanges from *source* namespace to *dest*."""
-        quota_mgr = ResourceQuotaManager(client=self.client, default_namespace=source)
-        lr_mgr = LimitRangeManager(client=self.client, default_namespace=source)
+        quota_mgr = ResourceQuotaManager(
+            kube_client=self.client, default_namespace=source
+        )
+        lr_mgr = LimitRangeManager(kube_client=self.client, default_namespace=source)
 
         for quota in quota_mgr.list_quotas(namespace=source):
+            if not (quota.metadata and quota.metadata.name):
+                continue
             spec = quota.spec
             hard = dict(spec.hard) if spec and spec.hard else {}
             scopes = list(spec.scopes) if spec and spec.scopes else None
-            scope_selector = spec.scope_selector.to_dict() if spec and spec.scope_selector else None
-            try:
+            scope_selector = (
+                dict(spec.scope_selector.to_dict())
+                if spec and spec.scope_selector
+                else None
+            )
+            with suppress(Exception):
                 quota_mgr.create_quota(
                     name=quota.metadata.name,
                     namespace=dest,
@@ -197,20 +224,22 @@ class NamespaceManager(BaseResourceManager[V1Namespace]):
                     scopes=scopes,
                     scope_selector=scope_selector,
                 )
-            except Exception:
-                pass
 
         for lr in lr_mgr.list_limit_ranges(namespace=source):
+            if not (lr.metadata and lr.metadata.name):
+                continue
             spec_lr = lr.spec
-            limits = [item.to_dict() for item in (spec_lr.limits or [])] if spec_lr else []
-            try:
+            limits = (
+                [dict(item.to_dict()) for item in (spec_lr.limits or [])]
+                if spec_lr
+                else []
+            )
+            with suppress(Exception):
                 lr_mgr.create_limit_range(
                     name=lr.metadata.name,
                     namespace=dest,
                     limits=limits,
                 )
-            except Exception:
-                pass
 
     def get_resource_summary(self, name: str) -> dict[str, int]:
         """Return a condensed count of each resource type in the namespace."""

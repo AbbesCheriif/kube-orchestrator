@@ -25,7 +25,7 @@ def configure_logging(level: str = "INFO", format: str = "console") -> None:
         renderer = structlog.dev.ConsoleRenderer()
 
     structlog.configure(
-        processors=shared_processors + [renderer],
+        processors=[*shared_processors, renderer],
         wrapper_class=structlog.make_filtering_bound_logger(log_level),
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),

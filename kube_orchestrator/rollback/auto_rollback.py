@@ -35,20 +35,22 @@ class AutoRollback:
                     deployment_name, namespace
                 )
                 revision = int(
-                    (deploy.metadata.annotations or {}).get(
-                        "deployment.kubernetes.io/revision", "1"
-                    )
+                    (
+                        (deploy.metadata.annotations if deploy.metadata else None) or {}
+                    ).get("deployment.kubernetes.io/revision", "1")
                 )
                 if revision > 1:
-                    self.rollback_to_revision(
-                        deployment_name, namespace, revision - 1
-                    )
+                    self.rollback_to_revision(deployment_name, namespace, revision - 1)
             except Exception as exc:
                 self._logger.error("trigger_rollback_failed", error=str(exc))
                 self.log_recovery_event(deployment_name, namespace, reason, False)
                 return
         else:
-            last_good = sorted(snapshots, key=lambda s: s.revision)[-2] if len(snapshots) >= 2 else snapshots[-1]
+            last_good = (
+                sorted(snapshots, key=lambda s: s.revision)[-2]
+                if len(snapshots) >= 2
+                else snapshots[-1]
+            )
             self.rollback_to_snapshot(last_good)
         self.log_recovery_event(deployment_name, namespace, reason, True)
 
@@ -60,7 +62,9 @@ class AutoRollback:
         )
         try:
             self._client.apps_v1.replace_namespaced_deployment(
-                snap.name, snap.namespace, snap.manifest
+                snap.name,
+                snap.namespace,
+                snap.manifest,  # type: ignore[arg-type]  # dict body accepted at runtime
             )
         except Exception as exc:
             self._logger.error(
@@ -86,7 +90,7 @@ class AutoRollback:
             target_rs = None
             for rs in replica_sets.items:
                 rs_revision = int(
-                    (rs.metadata.annotations or {}).get(
+                    ((rs.metadata.annotations if rs.metadata else None) or {}).get(
                         "deployment.kubernetes.io/revision", "0"
                     )
                 )
@@ -104,9 +108,11 @@ class AutoRollback:
 
             patch: dict[str, Any] = {
                 "spec": {
-                    "template": target_rs.spec.template.to_dict()
-                    if target_rs.spec.template
-                    else {}
+                    "template": (
+                        dict(target_rs.spec.template.to_dict())
+                        if target_rs.spec and target_rs.spec.template
+                        else {}
+                    )
                 }
             }
             self._client.apps_v1.patch_namespaced_deployment(
@@ -123,7 +129,7 @@ class AutoRollback:
 
     def get_rollback_history(
         self, deployment_name: str, namespace: str
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         return [
             entry
             for entry in self._history
@@ -171,6 +177,9 @@ class AutoRollback:
                 "message": f"{'Success' if success else 'Failed'}: {reason}",
                 "type": "Normal" if success else "Warning",
             }
-            self._client.core_v1.create_namespaced_event(namespace, body)
+            self._client.core_v1.create_namespaced_event(
+                namespace,
+                body,  # type: ignore[arg-type]  # dict body accepted at runtime
+            )
         except Exception:
             pass

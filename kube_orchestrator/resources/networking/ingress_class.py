@@ -8,7 +8,7 @@ from kubernetes.client import (
     NetworkingV1Api,
     V1IngressClass,
 )
-from kubernetes.client.rest import ApiException
+from kubernetes.client.exceptions import ApiException
 
 from kube_orchestrator.core.exceptions import parse_api_exception
 from kube_orchestrator.resources.base import BaseResourceManager
@@ -26,6 +26,9 @@ class IngressClassManager(BaseResourceManager[V1IngressClass]):
     def _kind(self) -> str:
         return "IngressClass"
 
+    def _resource_name(self) -> str:
+        return "ingress_class"
+
     def _api_version(self) -> str:
         return "networking.k8s.io/v1"
 
@@ -37,9 +40,9 @@ class IngressClassManager(BaseResourceManager[V1IngressClass]):
         self,
         name: str,
         controller: str,
-        parameters: dict | None = None,
+        parameters: dict[str, Any] | None = None,
         is_default: bool = False,
-        labels: dict | None = None,
+        labels: dict[str, Any] | None = None,
     ) -> V1IngressClass:
         annotations: dict[str, str] | None = None
         if is_default:
@@ -62,7 +65,7 @@ class IngressClassManager(BaseResourceManager[V1IngressClass]):
         }
         try:
             result = self.client.networking_v1.create_ingress_class(
-                body=manifest,
+                body=manifest,  # type: ignore[arg-type]  # dict body accepted at runtime
                 dry_run=self.dry_run,
             )
             self.logger.info("created IngressClass", name=name)
@@ -106,11 +109,7 @@ class IngressClassManager(BaseResourceManager[V1IngressClass]):
         try:
             return self.client.networking_v1.patch_ingress_class(
                 name=name,
-                body={
-                    "metadata": {
-                        "annotations": {_DEFAULT_ANNOTATION: "true"}
-                    }
-                },
+                body={"metadata": {"annotations": {_DEFAULT_ANNOTATION: "true"}}},
                 dry_run=self.dry_run,
             )
         except ApiException as exc:
@@ -121,11 +120,7 @@ class IngressClassManager(BaseResourceManager[V1IngressClass]):
         try:
             return self.client.networking_v1.patch_ingress_class(
                 name=name,
-                body={
-                    "metadata": {
-                        "annotations": {_DEFAULT_ANNOTATION: None}
-                    }
-                },
+                body={"metadata": {"annotations": {_DEFAULT_ANNOTATION: None}}},
                 dry_run=self.dry_run,
             )
         except ApiException as exc:
@@ -134,7 +129,9 @@ class IngressClassManager(BaseResourceManager[V1IngressClass]):
     def get_default(self) -> V1IngressClass | None:
         """Return the cluster-default IngressClass, or None if none is set."""
         for ic in self.list_ingress_classes():
-            annotations = getattr(getattr(ic, "metadata", None), "annotations", None) or {}
+            annotations = (
+                getattr(getattr(ic, "metadata", None), "annotations", None) or {}
+            )
             if annotations.get(_DEFAULT_ANNOTATION) == "true":
                 return ic
         return None
@@ -144,7 +141,7 @@ class IngressClassManager(BaseResourceManager[V1IngressClass]):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _build_parameters(params: dict) -> dict[str, Any]:
+    def _build_parameters(params: dict[str, Any]) -> dict[str, Any]:
         """Normalize IngressClass parameters (apiGroup, kind, name, namespace, scope)."""
         result: dict[str, Any] = {
             "kind": params.get("kind", ""),

@@ -1,4 +1,5 @@
 """Node management example — list, cordon, taint and drain."""
+
 from __future__ import annotations
 
 from kube_orchestrator.core.client import KubeClient
@@ -14,7 +15,9 @@ for node in nodes:
     ready = "Ready" if manager.is_ready(name) else "NotReady"
     schedulable = "Schedulable" if manager.is_schedulable(name) else "Cordoned"
     alloc = manager.get_allocatable(name)
-    print(f"  {name}: {ready}, {schedulable}, CPU={alloc.get('cpu')}, Memory={alloc.get('memory')}")
+    print(
+        f"  {name}: {ready}, {schedulable}, CPU={alloc.get('cpu')}, Memory={alloc.get('memory')}"
+    )
 
 if nodes:
     target = nodes[-1].metadata.name

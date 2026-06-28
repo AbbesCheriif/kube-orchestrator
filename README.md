@@ -1,8 +1,9 @@
 # kube-orchestrator
 
 [![PyPI version](https://img.shields.io/pypi/v/kube-orchestrator.svg)](https://pypi.org/project/kube-orchestrator/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/kube-orchestrator.svg)](https://pypi.org/project/kube-orchestrator/)
 [![Python versions](https://img.shields.io/pypi/pyversions/kube-orchestrator.svg)](https://pypi.org/project/kube-orchestrator/)
-[![CI](https://github.com/AbbesCheriif/kube-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/AbbesCheriif/kube-orchestrator/actions)
+[![Tests](https://github.com/AbbesCheriif/kube-orchestrator/actions/workflows/tests.yml/badge.svg)](https://github.com/AbbesCheriif/kube-orchestrator/actions/workflows/tests.yml)
 [![Coverage](https://img.shields.io/codecov/c/github/AbbesCheriif/kube-orchestrator)](https://codecov.io/gh/AbbesCheriif/kube-orchestrator)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -162,7 +163,8 @@ kube-orchestrator
 
 ## Documentation
 
-Full documentation is available at: https://github.com/AbbesCheriif/kube-orchestrator/wiki
+Full documentation, including the API reference and guides, lives in the
+[`docs/`](docs/) folder — start at [`docs/index.md`](docs/index.md).
 
 ---
 

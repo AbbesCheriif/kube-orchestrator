@@ -1,13 +1,21 @@
 from __future__ import annotations
 
-from kubernetes.client import V1ClusterRole, V1ObjectMeta, V1PolicyRule, V1Role
+from typing import Any
+
+from kubernetes.client import (
+    RbacAuthorizationV1Api,
+    V1ClusterRole,
+    V1ObjectMeta,
+    V1PolicyRule,
+    V1Role,
+)
 
 from kube_orchestrator.resources.base import BaseResourceManager
 
 
 class RoleManager(BaseResourceManager[V1Role]):
 
-    def _get_api(self):
+    def _get_api(self) -> RbacAuthorizationV1Api:
         return self.client.rbac_v1
 
     def _kind(self) -> str:
@@ -16,14 +24,14 @@ class RoleManager(BaseResourceManager[V1Role]):
     def _api_version(self) -> str:
         return "rbac.authorization.k8s.io/v1"
 
-    def _build_rules(self, rules: list[dict]) -> list[V1PolicyRule]:
+    def _build_rules(self, rules: list[dict[str, Any]]) -> list[V1PolicyRule]:
         return [
             V1PolicyRule(
                 api_groups=r.get("apiGroups", [""]),
                 resources=r.get("resources", []),
                 verbs=r.get("verbs", []),
                 resource_names=r.get("resourceNames"),
-                non_resource_urls=r.get("nonResourceURLs"),
+                non_resource_urls=r.get("nonResourceURLs"),  # type: ignore[call-arg]  # kubernetes-stubs mis-names this "non_resource_ur_ls"
             )
             for r in rules
         ]
@@ -32,8 +40,8 @@ class RoleManager(BaseResourceManager[V1Role]):
         self,
         name: str,
         namespace: str,
-        rules: list[dict],
-        labels: dict | None = None,
+        rules: list[dict[str, Any]],
+        labels: dict[str, Any] | None = None,
     ) -> V1Role:
         body = V1Role(
             api_version="rbac.authorization.k8s.io/v1",
@@ -54,7 +62,11 @@ class RoleManager(BaseResourceManager[V1Role]):
         verbs: list[str],
         resource_names: list[str] | None = None,
     ) -> V1Role:
-        rule: dict = {"apiGroups": api_groups, "resources": resources, "verbs": verbs}
+        rule: dict[str, Any] = {
+            "apiGroups": api_groups,
+            "resources": resources,
+            "verbs": verbs,
+        }
         if resource_names:
             rule["resourceNames"] = resource_names
         return self.create_role(name=name, namespace=namespace, rules=[rule])
@@ -94,23 +106,26 @@ class RoleManager(BaseResourceManager[V1Role]):
 
 class ClusterRoleManager(BaseResourceManager[V1ClusterRole]):
 
-    def _get_api(self):
+    def _get_api(self) -> RbacAuthorizationV1Api:
         return self.client.rbac_v1
 
     def _kind(self) -> str:
         return "ClusterRole"
 
+    def _resource_name(self) -> str:
+        return "cluster_role"
+
     def _api_version(self) -> str:
         return "rbac.authorization.k8s.io/v1"
 
-    def _build_rules(self, rules: list[dict]) -> list[V1PolicyRule]:
+    def _build_rules(self, rules: list[dict[str, Any]]) -> list[V1PolicyRule]:
         return [
             V1PolicyRule(
                 api_groups=r.get("apiGroups", [""]),
                 resources=r.get("resources", []),
                 verbs=r.get("verbs", []),
                 resource_names=r.get("resourceNames"),
-                non_resource_urls=r.get("nonResourceURLs"),
+                non_resource_urls=r.get("nonResourceURLs"),  # type: ignore[call-arg]  # kubernetes-stubs mis-names this "non_resource_ur_ls"
             )
             for r in rules
         ]
@@ -118,9 +133,9 @@ class ClusterRoleManager(BaseResourceManager[V1ClusterRole]):
     def create_cluster_role(
         self,
         name: str,
-        rules: list[dict],
-        aggregation_rule: dict | None = None,
-        labels: dict | None = None,
+        rules: list[dict[str, Any]],
+        aggregation_rule: dict[str, Any] | None = None,
+        labels: dict[str, Any] | None = None,
     ) -> V1ClusterRole:
         from kubernetes.client import V1AggregationRule
 
@@ -147,7 +162,11 @@ class ClusterRoleManager(BaseResourceManager[V1ClusterRole]):
         verbs: list[str],
         non_resource_urls: list[str] | None = None,
     ) -> V1ClusterRole:
-        rule: dict = {"apiGroups": api_groups, "resources": resources, "verbs": verbs}
+        rule: dict[str, Any] = {
+            "apiGroups": api_groups,
+            "resources": resources,
+            "verbs": verbs,
+        }
         if non_resource_urls:
             rule["nonResourceURLs"] = non_resource_urls
         return self.create_cluster_role(name=name, rules=[rule])
@@ -165,7 +184,7 @@ class ClusterRoleManager(BaseResourceManager[V1ClusterRole]):
             api_groups=api_groups,
             resources=resources,
             verbs=verbs,
-            non_resource_urls=non_resource_urls,
+            non_resource_urls=non_resource_urls,  # type: ignore[call-arg]  # kubernetes-stubs mis-names this "non_resource_ur_ls"
         )
         cr.rules = (cr.rules or []) + [new_rule]
         return self._get_api().replace_cluster_role(

@@ -11,7 +11,7 @@ from kubernetes.client import (
     V1Pod,
     V1Service,
 )
-from kubernetes.client.rest import ApiException
+from kubernetes.client.exceptions import ApiException
 
 from kube_orchestrator.core.exceptions import ResourceNotFoundError, parse_api_exception
 from kube_orchestrator.resources.base import BaseResourceManager
@@ -38,8 +38,8 @@ class ServiceManager(BaseResourceManager[V1Service]):
         self,
         name: str,
         namespace: str,
-        selector: dict | None = None,
-        ports: list[dict] | None = None,
+        selector: dict[str, Any] | None = None,
+        ports: list[dict[str, Any]] | None = None,
         service_type: str = "ClusterIP",
         cluster_ip: str | None = None,
         cluster_ips: list[str] | None = None,
@@ -57,8 +57,8 @@ class ServiceManager(BaseResourceManager[V1Service]):
         ip_families: list[str] | None = None,
         ip_family_policy: str | None = None,
         allocate_lb_node_ports: bool | None = None,
-        labels: dict | None = None,
-        annotations: dict | None = None,
+        labels: dict[str, Any] | None = None,
+        annotations: dict[str, Any] | None = None,
     ) -> V1Service:
         spec: dict[str, Any] = {"type": service_type}
 
@@ -122,8 +122,8 @@ class ServiceManager(BaseResourceManager[V1Service]):
         self,
         name: str,
         namespace: str,
-        selector: dict,
-        ports: list[dict],
+        selector: dict[str, Any],
+        ports: list[dict[str, Any]],
         cluster_ip: str | None = None,
         **opts: Any,
     ) -> V1Service:
@@ -141,8 +141,8 @@ class ServiceManager(BaseResourceManager[V1Service]):
         self,
         name: str,
         namespace: str,
-        selector: dict,
-        ports: list[dict],
+        selector: dict[str, Any],
+        ports: list[dict[str, Any]],
         external_traffic_policy: str = "Cluster",
         **opts: Any,
     ) -> V1Service:
@@ -160,8 +160,8 @@ class ServiceManager(BaseResourceManager[V1Service]):
         self,
         name: str,
         namespace: str,
-        selector: dict,
-        ports: list[dict],
+        selector: dict[str, Any],
+        ports: list[dict[str, Any]],
         load_balancer_ip: str | None = None,
         source_ranges: list[str] | None = None,
         **opts: Any,
@@ -196,8 +196,8 @@ class ServiceManager(BaseResourceManager[V1Service]):
         self,
         name: str,
         namespace: str,
-        selector: dict,
-        ports: list[dict],
+        selector: dict[str, Any],
+        ports: list[dict[str, Any]],
         **opts: Any,
     ) -> V1Service:
         """Headless service: clusterIP=None, used by StatefulSets."""
@@ -227,12 +227,15 @@ class ServiceManager(BaseResourceManager[V1Service]):
         services = self.list(namespace, label_selector=label_selector)
         if service_type is not None:
             services = [
-                s for s in services
+                s
+                for s in services
                 if getattr(getattr(s, "spec", None), "type", None) == service_type
             ]
         return services
 
-    def update_service(self, name: str, namespace: str, manifest: dict) -> V1Service:
+    def update_service(
+        self, name: str, namespace: str, manifest: dict[str, Any]
+    ) -> V1Service:
         return self.update(name, manifest, namespace)
 
     def delete_service(self, name: str, namespace: str) -> None:
@@ -244,7 +247,7 @@ class ServiceManager(BaseResourceManager[V1Service]):
 
     def get_cluster_ip(self, name: str, namespace: str) -> str:
         svc = self.get_service(name, namespace)
-        return svc.spec.cluster_ip or ""
+        return (svc.spec and svc.spec.cluster_ip) or ""
 
     def get_external_ip(self, name: str, namespace: str) -> str | None:
         svc = self.get_service(name, namespace)
@@ -281,7 +284,7 @@ class ServiceManager(BaseResourceManager[V1Service]):
         port: int,
     ) -> int | None:
         svc = self.get_service(name, namespace)
-        for p in (getattr(svc.spec, "ports", None) or []):
+        for p in getattr(svc.spec, "ports", None) or []:
             if getattr(p, "port", None) == port:
                 return getattr(p, "node_port", None)
         return None
@@ -302,7 +305,7 @@ class ServiceManager(BaseResourceManager[V1Service]):
 
     def get_target_pods(self, name: str, namespace: str) -> list[V1Pod]:
         svc = self.get_service(name, namespace)
-        selector_dict: dict = getattr(svc.spec, "selector", None) or {}
+        selector_dict: dict[str, Any] = getattr(svc.spec, "selector", None) or {}
         if not selector_dict:
             return []
         label_selector = ",".join(f"{k}={v}" for k, v in selector_dict.items())
@@ -318,11 +321,10 @@ class ServiceManager(BaseResourceManager[V1Service]):
     # Mutation helpers
     # ------------------------------------------------------------------
 
-    def add_port(self, name: str, namespace: str, port: dict) -> V1Service:
+    def add_port(self, name: str, namespace: str, port: dict[str, Any]) -> V1Service:
         svc = self.get_service(name, namespace)
         existing = [
-            self._port_to_dict(p)
-            for p in (getattr(svc.spec, "ports", None) or [])
+            self._port_to_dict(p) for p in (getattr(svc.spec, "ports", None) or [])
         ]
         existing.append(port)
         return self.patch(
@@ -337,7 +339,7 @@ class ServiceManager(BaseResourceManager[V1Service]):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _build_ports(ports: list[dict]) -> list[dict]:
+    def _build_ports(ports: list[dict[str, Any]]) -> list[dict[str, Any]]:
         normalized = []
         for p in ports:
             entry: dict[str, Any] = {
@@ -356,7 +358,7 @@ class ServiceManager(BaseResourceManager[V1Service]):
         return normalized
 
     @staticmethod
-    def _port_to_dict(port_obj: Any) -> dict:
+    def _port_to_dict(port_obj: Any) -> dict[str, Any]:
         result: dict[str, Any] = {
             "port": port_obj.port,
             "protocol": port_obj.protocol or "TCP",

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 
@@ -10,12 +10,24 @@ app = typer.Typer(help="Rollback a Deployment to a previous revision")
 @app.callback(invoke_without_command=True)
 def rollback(
     name: Annotated[str, typer.Argument(help="Deployment name to rollback")],
-    namespace: Annotated[str, typer.Option("--namespace", "-n", help="Namespace of the deployment")] = "default",
-    revision: Annotated[Optional[int], typer.Option("--revision", help="Target revision (omit for previous)")] = None,
-    dry_run: Annotated[bool, typer.Option("--dry-run", help="Preview rollback without executing")] = False,
+    namespace: Annotated[
+        str, typer.Option("--namespace", "-n", help="Namespace of the deployment")
+    ] = "default",
+    revision: Annotated[
+        int | None,
+        typer.Option("--revision", help="Target revision (omit for previous)"),
+    ] = None,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="Preview rollback without executing")
+    ] = False,
 ) -> None:
     """Roll back a Deployment to a previous revision."""
-    from kube_orchestrator.cli.output import print_error, print_info, print_success, print_warning
+    from kube_orchestrator.cli.output import (
+        print_error,
+        print_info,
+        print_success,
+        print_warning,
+    )
 
     if dry_run:
         print_warning("[DRY-RUN] No rollback will be performed.")
@@ -39,4 +51,4 @@ def rollback(
             print_success(f"Rollback of '{name}' to {target} completed.")
     except Exception as exc:
         print_error(f"Rollback failed: {exc}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from exc

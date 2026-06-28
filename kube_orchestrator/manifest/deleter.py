@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from kube_orchestrator.core.client import KubeClient
@@ -124,7 +123,7 @@ class ManifestDeleter:
             return [
                 {
                     "kind": "ReplicaSet",
-                    "name": rs.metadata.name,
+                    "name": rs.metadata.name if rs.metadata else None,
                     "namespace": namespace,
                 }
                 for rs in orphans

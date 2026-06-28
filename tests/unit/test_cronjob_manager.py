@@ -1,4 +1,5 @@
 """Unit tests for CronJobManager."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -15,7 +16,9 @@ def cj_manager(mock_kube_client: MagicMock) -> CronJobManager:
 
 @pytest.mark.unit
 class TestCronJobManager:
-    def test_create_cronjob(self, cj_manager: CronJobManager, mock_batch_v1: MagicMock) -> None:
+    def test_create_cronjob(
+        self, cj_manager: CronJobManager, mock_batch_v1: MagicMock
+    ) -> None:
         mock_batch_v1.create_namespaced_cron_job.return_value = MagicMock()
         cj_manager.create_cronjob(
             name="nightly-backup",
@@ -24,7 +27,10 @@ class TestCronJobManager:
             job_template={
                 "spec": {
                     "template": {
-                        "spec": {"containers": [{"name": "backup", "image": "alpine"}], "restartPolicy": "OnFailure"}
+                        "spec": {
+                            "containers": [{"name": "backup", "image": "alpine"}],
+                            "restartPolicy": "OnFailure",
+                        }
                     }
                 }
             },
@@ -35,14 +41,18 @@ class TestCronJobManager:
         )
         mock_batch_v1.create_namespaced_cron_job.assert_called_once()
 
-    def test_update_schedule(self, cj_manager: CronJobManager, mock_batch_v1: MagicMock) -> None:
+    def test_update_schedule(
+        self, cj_manager: CronJobManager, mock_batch_v1: MagicMock
+    ) -> None:
         mock_cj = MagicMock()
         mock_batch_v1.read_namespaced_cron_job.return_value = mock_cj
         mock_batch_v1.patch_namespaced_cron_job.return_value = mock_cj
         cj_manager.update_schedule("nightly-backup", "default", "0 3 * * *")
         mock_batch_v1.patch_namespaced_cron_job.assert_called_once()
 
-    def test_suspend_cronjob(self, cj_manager: CronJobManager, mock_batch_v1: MagicMock) -> None:
+    def test_suspend_cronjob(
+        self, cj_manager: CronJobManager, mock_batch_v1: MagicMock
+    ) -> None:
         mock_cj = MagicMock()
         mock_batch_v1.read_namespaced_cron_job.return_value = mock_cj
         mock_batch_v1.patch_namespaced_cron_job.return_value = mock_cj

@@ -6,7 +6,7 @@ import time
 from typing import Any
 
 from kubernetes import client
-from kubernetes.client.rest import ApiException
+from kubernetes.client.exceptions import ApiException
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.exceptions import ResourceNotFoundError, parse_api_exception
@@ -18,7 +18,7 @@ class JobManager(BaseResourceManager[client.V1Job]):
 
     def __init__(
         self,
-        kube_client: "KubeClient | None" = None,
+        kube_client: KubeClient | None = None,
         default_namespace: str = "default",
         dry_run: bool = False,
     ) -> None:
@@ -41,7 +41,7 @@ class JobManager(BaseResourceManager[client.V1Job]):
         self,
         name: str,
         namespace: str | None = None,
-        pod_template: dict | None = None,
+        pod_template: dict[str, Any] | None = None,
         completions: int | None = None,
         parallelism: int | None = None,
         backoff_limit: int = 6,
@@ -50,7 +50,7 @@ class JobManager(BaseResourceManager[client.V1Job]):
         completion_mode: str | None = None,
         suspend: bool = False,
         manual_selector: bool = False,
-        pod_failure_policy: dict | None = None,
+        pod_failure_policy: dict[str, Any] | None = None,
         labels: dict[str, str] | None = None,
     ) -> client.V1Job:
         ns = namespace or self.default_namespace
@@ -107,15 +107,11 @@ class JobManager(BaseResourceManager[client.V1Job]):
     # Suspend / Resume
     # ------------------------------------------------------------------
 
-    def suspend_job(
-        self, name: str, namespace: str | None = None
-    ) -> client.V1Job:
+    def suspend_job(self, name: str, namespace: str | None = None) -> client.V1Job:
         patch: dict[str, Any] = {"spec": {"suspend": True}}
         return self.patch(name, patch, namespace, "merge")
 
-    def resume_job(
-        self, name: str, namespace: str | None = None
-    ) -> client.V1Job:
+    def resume_job(self, name: str, namespace: str | None = None) -> client.V1Job:
         patch: dict[str, Any] = {"spec": {"suspend": False}}
         return self.patch(name, patch, namespace, "merge")
 
@@ -123,20 +119,30 @@ class JobManager(BaseResourceManager[client.V1Job]):
     # Status helpers
     # ------------------------------------------------------------------
 
-    def get_status(self, name: str, namespace: str | None = None) -> dict:
+    def get_status(self, name: str, namespace: str | None = None) -> dict[str, Any]:
         job = self.get_job(name, namespace)
         status = job.status
         return {
             "active": (status.active or 0) if status else 0,
             "succeeded": (status.succeeded or 0) if status else 0,
             "failed": (status.failed or 0) if status else 0,
-            "ready": (status.ready or 0) if status else 0,
-            "start_time": str(status.start_time) if status and status.start_time else None,
-            "completion_time": str(status.completion_time) if status and status.completion_time else None,
-            "conditions": [
-                c.to_dict() if hasattr(c, "to_dict") else c
-                for c in (status.conditions or [])
-            ] if status else [],
+            "ready": (status.ready or 0) if status else 0,  # type: ignore[attr-defined]  # missing from kubernetes-stubs
+            "start_time": (
+                str(status.start_time) if status and status.start_time else None
+            ),
+            "completion_time": (
+                str(status.completion_time)
+                if status and status.completion_time
+                else None
+            ),
+            "conditions": (
+                [
+                    c.to_dict() if hasattr(c, "to_dict") else c
+                    for c in (status.conditions or [])
+                ]
+                if status
+                else []
+            ),
         }
 
     def get_active_count(self, name: str, namespace: str | None = None) -> int:
@@ -156,8 +162,7 @@ class JobManager(BaseResourceManager[client.V1Job]):
         if not job.status or not job.status.conditions:
             return False
         return any(
-            c.type == "Complete" and c.status == "True"
-            for c in job.status.conditions
+            c.type == "Complete" and c.status == "True" for c in job.status.conditions
         )
 
     def is_failed(self, name: str, namespace: str | None = None) -> bool:
@@ -165,23 +170,16 @@ class JobManager(BaseResourceManager[client.V1Job]):
         if not job.status or not job.status.conditions:
             return False
         return any(
-            c.type == "Failed" and c.status == "True"
-            for c in job.status.conditions
+            c.type == "Failed" and c.status == "True" for c in job.status.conditions
         )
 
-    def get_pods(
-        self, name: str, namespace: str | None = None
-    ) -> list[client.V1Pod]:
+    def get_pods(self, name: str, namespace: str | None = None) -> list[client.V1Pod]:
         ns = namespace or self.default_namespace
         job = self.get_job(name, ns)
         match_labels = (
-            job.spec.selector.match_labels
-            if job.spec and job.spec.selector
-            else {}
+            job.spec.selector.match_labels if job.spec and job.spec.selector else {}
         )
-        label_selector = ",".join(
-            f"{k}={v}" for k, v in (match_labels or {}).items()
-        )
+        label_selector = ",".join(f"{k}={v}" for k, v in (match_labels or {}).items())
         try:
             result = self.client.core_v1.list_namespaced_pod(
                 namespace=ns, label_selector=label_selector

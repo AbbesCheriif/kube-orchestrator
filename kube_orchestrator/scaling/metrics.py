@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.logging import get_logger
 
@@ -9,7 +11,7 @@ class MetricsClient:
         self._client = client or KubeClient.get_instance()
         self._logger = get_logger(__name__)
 
-    def get_pod_metrics(self, name: str, namespace: str) -> dict:
+    def get_pod_metrics(self, name: str, namespace: str) -> dict[str, Any]:
         try:
             result = self._client.custom_objects.get_namespaced_custom_object(
                 group="metrics.k8s.io",
@@ -23,7 +25,7 @@ class MetricsClient:
             self._logger.warning("get_pod_metrics_failed", pod=name, error=str(exc))
             return {}
 
-    def get_node_metrics(self, name: str) -> dict:
+    def get_node_metrics(self, name: str) -> dict[str, Any]:
         try:
             result = self._client.custom_objects.get_cluster_custom_object(
                 group="metrics.k8s.io",
@@ -38,9 +40,9 @@ class MetricsClient:
 
     def list_pod_metrics(
         self, namespace: str, label_selector: str | None = None
-    ) -> list:
+    ) -> list[Any]:
         try:
-            kwargs: dict = {
+            kwargs: dict[str, Any] = {
                 "group": "metrics.k8s.io",
                 "version": "v1beta1",
                 "namespace": namespace,
@@ -51,10 +53,12 @@ class MetricsClient:
             result = self._client.custom_objects.list_namespaced_custom_object(**kwargs)
             return [self._parse_pod_metrics(item) for item in result.get("items", [])]
         except Exception as exc:
-            self._logger.warning("list_pod_metrics_failed", namespace=namespace, error=str(exc))
+            self._logger.warning(
+                "list_pod_metrics_failed", namespace=namespace, error=str(exc)
+            )
             return []
 
-    def list_node_metrics(self) -> list:
+    def list_node_metrics(self) -> list[Any]:
         try:
             result = self._client.custom_objects.list_cluster_custom_object(
                 group="metrics.k8s.io",
@@ -66,23 +70,23 @@ class MetricsClient:
             self._logger.warning("list_node_metrics_failed", error=str(exc))
             return []
 
-    def get_top_pods(self, namespace: str, top: int = 5) -> list:
+    def get_top_pods(self, namespace: str, top: int = 5) -> list[Any]:
         metrics = self.list_pod_metrics(namespace)
         sorted_metrics = sorted(
             metrics, key=lambda m: m.get("cpu_cores", 0), reverse=True
         )
         return sorted_metrics[:top]
 
-    def get_top_nodes(self, top: int = 5) -> list:
+    def get_top_nodes(self, top: int = 5) -> list[Any]:
         metrics = self.list_node_metrics()
         sorted_metrics = sorted(
             metrics, key=lambda m: m.get("cpu_cores", 0), reverse=True
         )
         return sorted_metrics[:top]
 
-    def _parse_pod_metrics(self, raw: dict) -> dict:
+    def _parse_pod_metrics(self, raw: dict[str, Any]) -> dict[str, Any]:
         containers = raw.get("containers", [])
-        total_cpu = 0
+        total_cpu: float = 0
         total_memory = 0
         for container in containers:
             usage = container.get("usage", {})
@@ -96,7 +100,7 @@ class MetricsClient:
             "containers": len(containers),
         }
 
-    def _parse_node_metrics(self, raw: dict) -> dict:
+    def _parse_node_metrics(self, raw: dict[str, Any]) -> dict[str, Any]:
         usage = raw.get("usage", {})
         return {
             "name": raw.get("metadata", {}).get("name", ""),
@@ -119,7 +123,15 @@ class MetricsClient:
     @staticmethod
     def _parse_memory(value: str) -> int:
         value = value.strip()
-        units = {"Ki": 1024, "Mi": 1024**2, "Gi": 1024**3, "Ti": 1024**4, "k": 1000, "M": 1000**2, "G": 1000**3}
+        units = {
+            "Ki": 1024,
+            "Mi": 1024**2,
+            "Gi": 1024**3,
+            "Ti": 1024**4,
+            "k": 1000,
+            "M": 1000**2,
+            "G": 1000**3,
+        }
         for suffix, multiplier in units.items():
             if value.endswith(suffix):
                 return int(value[: -len(suffix)]) * multiplier

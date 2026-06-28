@@ -1,12 +1,17 @@
 """Integration test fixtures — require a real Kubernetes cluster (kind)."""
+
 from __future__ import annotations
+
+from contextlib import suppress
 
 import pytest
 
 
 def pytest_collection_modifyitems(config, items):
     """Skip integration tests if no cluster is reachable."""
-    skip_integration = pytest.mark.skip(reason="No Kubernetes cluster available (set KUBECONFIG or run kind create cluster)")
+    skip_integration = pytest.mark.skip(
+        reason="No Kubernetes cluster available (set KUBECONFIG or run kind create cluster)"
+    )
     for item in items:
         if "integration" in item.keywords:
             try:
@@ -36,12 +41,8 @@ def test_namespace(kube_client) -> str:
 
     ns_name = f"ko-test-{uuid.uuid4().hex[:8]}"
     manager = NamespaceManager(kube_client=kube_client)
-    try:
+    with suppress(Exception):
         manager.create_namespace(ns_name)
-    except Exception:
-        pass
     yield ns_name
-    try:
+    with suppress(Exception):
         manager.delete_namespace(ns_name)
-    except Exception:
-        pass

@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable, Iterator
-from typing import Any
+from typing import Any, cast
 
-from kubernetes import client, watch
-from kubernetes.client.rest import ApiException
+from kubernetes import (  # type: ignore[attr-defined]  # kubernetes-stubs has no watch submodule stub
+    client,
+    watch,
+)
+from kubernetes.client.exceptions import ApiException
 from kubernetes.stream import stream
 
 from kube_orchestrator.core.client import KubeClient
@@ -21,7 +24,7 @@ class PodManager(BaseResourceManager[client.V1Pod]):
 
     def __init__(
         self,
-        kube_client: "KubeClient | None" = None,
+        kube_client: KubeClient | None = None,
         default_namespace: str = "default",
         dry_run: bool = False,
     ) -> None:
@@ -43,10 +46,12 @@ class PodManager(BaseResourceManager[client.V1Pod]):
     def create_pod(
         self,
         builder: PodBuilder | None = None,
-        manifest: dict | None = None,
+        manifest: dict[str, Any] | None = None,
         namespace: str | None = None,
     ) -> client.V1Pod:
         body = builder.build() if builder else manifest
+        if body is None:
+            raise ValueError("create_pod requires either a builder or a manifest")
         ns = namespace or self.default_namespace
         body.setdefault("metadata", {})["namespace"] = ns
         return self.create(body, ns)
@@ -134,7 +139,11 @@ class PodManager(BaseResourceManager[client.V1Pod]):
         try:
             resp = self.client.core_v1.read_namespaced_pod_log(name, ns, **kwargs)
             for line in resp:
-                yield line.decode("utf-8", errors="replace").rstrip("\n")
+                # _preload_content=False makes this yield raw bytes at runtime,
+                # even though kubernetes-stubs types the return as str.
+                yield line.decode("utf-8", errors="replace").rstrip(  # type: ignore[attr-defined]
+                    "\n"
+                )
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
 
@@ -151,8 +160,7 @@ class PodManager(BaseResourceManager[client.V1Pod]):
         if not pod.status or not pod.status.conditions:
             return False
         return any(
-            c.type == "Ready" and c.status == "True"
-            for c in pod.status.conditions
+            c.type == "Ready" and c.status == "True" for c in pod.status.conditions
         )
 
     def get_container_status(
@@ -160,7 +168,7 @@ class PodManager(BaseResourceManager[client.V1Pod]):
         name: str,
         namespace: str | None = None,
         container: str = "",
-    ) -> dict:
+    ) -> dict[str, Any]:
         pod = self.get_pod(name, namespace)
         if not pod.status or not pod.status.container_statuses:
             return {}
@@ -230,15 +238,20 @@ class PodManager(BaseResourceManager[client.V1Pod]):
     # Advanced operations
     # ------------------------------------------------------------------
 
-    def get_resource_usage(self, name: str, namespace: str | None = None) -> dict:
+    def get_resource_usage(
+        self, name: str, namespace: str | None = None
+    ) -> dict[str, Any]:
         ns = namespace or self.default_namespace
         try:
-            return self.client.custom_objects.get_namespaced_custom_object(
-                group="metrics.k8s.io",
-                version="v1beta1",
-                namespace=ns,
-                plural="pods",
-                name=name,
+            return cast(
+                "dict[str, Any]",
+                self.client.custom_objects.get_namespaced_custom_object(
+                    group="metrics.k8s.io",
+                    version="v1beta1",
+                    namespace=ns,
+                    plural="pods",
+                    name=name,
+                ),
             )
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
@@ -289,13 +302,19 @@ class PodManager(BaseResourceManager[client.V1Pod]):
         self,
         name: str,
         namespace: str | None = None,
-        container: dict | None = None,
+        container: dict[str, Any] | None = None,
     ) -> client.V1Pod:
         ns = namespace or self.default_namespace
         pod = self.get_pod(name, ns)
+        if pod.spec is None:
+            raise ResourceNotFoundError(self._kind(), name, ns)
         existing = list(pod.spec.ephemeral_containers or [])
-        existing.append(container or {})
-        body = client.V1Pod(spec=client.V1PodSpec(ephemeral_containers=existing))
+        existing.append(container or {})  # type: ignore[arg-type]  # dict accepted at runtime
+        body = client.V1Pod(
+            spec=client.V1PodSpec(
+                containers=pod.spec.containers, ephemeral_containers=existing
+            )
+        )
         try:
             return self.client.core_v1.patch_namespaced_pod_ephemeralcontainers(
                 name=name, namespace=ns, body=body

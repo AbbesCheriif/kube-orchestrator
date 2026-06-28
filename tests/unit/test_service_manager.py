@@ -1,4 +1,5 @@
 """Unit tests for ServiceManager."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -15,7 +16,9 @@ def svc_manager(mock_kube_client: MagicMock) -> ServiceManager:
 
 @pytest.mark.unit
 class TestServiceManager:
-    def test_create_clusterip(self, svc_manager: ServiceManager, mock_core_v1: MagicMock) -> None:
+    def test_create_clusterip(
+        self, svc_manager: ServiceManager, mock_core_v1: MagicMock
+    ) -> None:
         mock_core_v1.create_namespaced_service.return_value = MagicMock()
         svc_manager.create_clusterip(
             name="my-svc",
@@ -25,7 +28,9 @@ class TestServiceManager:
         )
         mock_core_v1.create_namespaced_service.assert_called_once()
 
-    def test_create_nodeport(self, svc_manager: ServiceManager, mock_core_v1: MagicMock) -> None:
+    def test_create_nodeport(
+        self, svc_manager: ServiceManager, mock_core_v1: MagicMock
+    ) -> None:
         mock_core_v1.create_namespaced_service.return_value = MagicMock()
         svc_manager.create_nodeport(
             name="my-np",
@@ -36,7 +41,9 @@ class TestServiceManager:
         )
         mock_core_v1.create_namespaced_service.assert_called_once()
 
-    def test_create_loadbalancer(self, svc_manager: ServiceManager, mock_core_v1: MagicMock) -> None:
+    def test_create_loadbalancer(
+        self, svc_manager: ServiceManager, mock_core_v1: MagicMock
+    ) -> None:
         mock_core_v1.create_namespaced_service.return_value = MagicMock()
         svc_manager.create_loadbalancer(
             name="my-lb",
@@ -46,7 +53,9 @@ class TestServiceManager:
         )
         mock_core_v1.create_namespaced_service.assert_called_once()
 
-    def test_create_headless(self, svc_manager: ServiceManager, mock_core_v1: MagicMock) -> None:
+    def test_create_headless(
+        self, svc_manager: ServiceManager, mock_core_v1: MagicMock
+    ) -> None:
         mock_core_v1.create_namespaced_service.return_value = MagicMock()
         svc_manager.create_headless(
             name="my-headless",
@@ -58,6 +67,8 @@ class TestServiceManager:
         body = call_args[0][1] if call_args[0] else call_args[1].get("body")
         assert body["spec"]["clusterIP"] == "None"
 
-    def test_delete_service(self, svc_manager: ServiceManager, mock_core_v1: MagicMock) -> None:
+    def test_delete_service(
+        self, svc_manager: ServiceManager, mock_core_v1: MagicMock
+    ) -> None:
         svc_manager.delete_service("my-svc", "default")
         mock_core_v1.delete_namespaced_service.assert_called_once()

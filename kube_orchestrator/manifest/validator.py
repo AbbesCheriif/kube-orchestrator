@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from kube_orchestrator.resources.base import BaseResourceManager
@@ -36,7 +36,9 @@ DEPENDENCY_ORDER: list[str] = [
     "PodDisruptionBudget",
 ]
 
-_KIND_PRIORITY: dict[str, int] = {kind: idx for idx, kind in enumerate(DEPENDENCY_ORDER)}
+_KIND_PRIORITY: dict[str, int] = {
+    kind: idx for idx, kind in enumerate(DEPENDENCY_ORDER)
+}
 
 # Maps kind → (manager_class_path, expected api_version)
 KIND_REGISTRY: dict[str, dict[str, str]] = {
@@ -195,7 +197,7 @@ def detect_api_version(manifest: dict[str, Any]) -> str:
 
 def route_by_kind(
     manifest: dict[str, Any],
-) -> type["BaseResourceManager[Any]"] | None:
+) -> type[BaseResourceManager[Any]] | None:
     """Return the manager class for the manifest's kind, or None if unknown."""
     import importlib
 
@@ -205,7 +207,7 @@ def route_by_kind(
         return None
     module_path, class_name = entry["manager"].rsplit(".", 1)
     module = importlib.import_module(module_path)
-    return getattr(module, class_name)
+    return cast("type[BaseResourceManager[Any]]", getattr(module, class_name))
 
 
 def validate_spec_for_kind(manifest: dict[str, Any]) -> list[str]:
@@ -239,9 +241,8 @@ def validate_spec_for_kind(manifest: dict[str, Any]) -> list[str]:
             if "maxReplicas" not in spec:
                 errors.append("HorizontalPodAutoscaler.spec must have 'maxReplicas'")
 
-    elif kind == "Ingress":
-        if not spec:
-            errors.append("Ingress must have a 'spec' field")
+    elif kind == "Ingress" and not spec:
+        errors.append("Ingress must have a 'spec' field")
 
     return errors
 

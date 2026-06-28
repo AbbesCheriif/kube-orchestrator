@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from kubernetes import client
-from kubernetes.client.rest import ApiException
+from kubernetes.client.exceptions import ApiException
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.exceptions import ResourceNotFoundError, parse_api_exception
@@ -22,7 +22,7 @@ class DeploymentManager(BaseResourceManager[client.V1Deployment]):
 
     def __init__(
         self,
-        kube_client: "KubeClient | None" = None,
+        kube_client: KubeClient | None = None,
         default_namespace: str = "default",
         dry_run: bool = False,
     ) -> None:
@@ -44,10 +44,14 @@ class DeploymentManager(BaseResourceManager[client.V1Deployment]):
     def create_deployment(
         self,
         builder: DeploymentBuilder | None = None,
-        manifest: dict | None = None,
+        manifest: dict[str, Any] | None = None,
         namespace: str | None = None,
     ) -> client.V1Deployment:
         body = builder.build() if builder else manifest
+        if body is None:
+            raise ValueError(
+                "create_deployment requires either a builder or a manifest"
+            )
         ns = namespace or self.default_namespace
         body.setdefault("metadata", {})["namespace"] = ns
         return self.create(body, ns)
@@ -68,7 +72,7 @@ class DeploymentManager(BaseResourceManager[client.V1Deployment]):
         self,
         name: str,
         namespace: str | None = None,
-        manifest: dict | None = None,
+        manifest: dict[str, Any] | None = None,
     ) -> client.V1Deployment:
         return self.update(name, manifest or {}, namespace)
 
@@ -76,7 +80,7 @@ class DeploymentManager(BaseResourceManager[client.V1Deployment]):
         self,
         name: str,
         namespace: str | None = None,
-        patch: dict | None = None,
+        patch: dict[str, Any] | None = None,
         patch_type: str = "strategic",
     ) -> client.V1Deployment:
         return self.patch(name, patch or {}, namespace, patch_type)
@@ -125,9 +129,7 @@ class DeploymentManager(BaseResourceManager[client.V1Deployment]):
         patch_body = {
             "spec": {
                 "template": {
-                    "spec": {
-                        "containers": [{"name": container_name, "image": image}]
-                    }
+                    "spec": {"containers": [{"name": container_name, "image": image}]}
                 }
             }
         }
@@ -192,7 +194,7 @@ class DeploymentManager(BaseResourceManager[client.V1Deployment]):
 
     def get_rollout_status(
         self, name: str, namespace: str | None = None
-    ) -> dict:
+    ) -> dict[str, Any]:
         dep = self.get_deployment(name, namespace)
         status = dep.status or client.V1DeploymentStatus()
         return {
@@ -262,11 +264,11 @@ class DeploymentManager(BaseResourceManager[client.V1Deployment]):
 
     def get_rollout_history(
         self, name: str, namespace: str | None = None
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         ns = namespace or self.default_namespace
         try:
             result = self.client.apps_v1.list_namespaced_replica_set(namespace=ns)
-            history: list[dict] = []
+            history: list[dict[str, Any]] = []
             for rs in result.items:
                 if not rs.metadata or not rs.metadata.owner_references:
                     continue
@@ -317,9 +319,7 @@ class DeploymentManager(BaseResourceManager[client.V1Deployment]):
     # Related resources
     # ------------------------------------------------------------------
 
-    def get_pods(
-        self, name: str, namespace: str | None = None
-    ) -> list[client.V1Pod]:
+    def get_pods(self, name: str, namespace: str | None = None) -> list[client.V1Pod]:
         ns = namespace or self.default_namespace
         dep = self.get_deployment(name, ns)
         match_labels = (
@@ -361,13 +361,12 @@ class DeploymentManager(BaseResourceManager[client.V1Deployment]):
         if not dep.status or not dep.status.conditions:
             return False
         return any(
-            c.type == "Available" and c.status == "True"
-            for c in dep.status.conditions
+            c.type == "Available" and c.status == "True" for c in dep.status.conditions
         )
 
     def get_conditions(
         self, name: str, namespace: str | None = None
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         dep = self.get_deployment(name, namespace)
         if not dep.status or not dep.status.conditions:
             return []

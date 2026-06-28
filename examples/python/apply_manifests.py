@@ -1,4 +1,5 @@
 """Apply manifests example — load, validate, render and apply."""
+
 from __future__ import annotations
 
 from pathlib import Path

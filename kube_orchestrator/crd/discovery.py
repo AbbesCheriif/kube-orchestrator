@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from kubernetes.client.rest import ApiException
+from kubernetes.client.exceptions import ApiException
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.exceptions import parse_api_exception
@@ -25,7 +25,7 @@ class APIDiscovery:
         """Return the names of all API groups registered in the cluster."""
         from kubernetes import client as k8s_client
 
-        api = k8s_client.ApisApi(self.client._client)
+        api = k8s_client.ApisApi(self.client._api_client)
         try:
             result = api.get_api_versions()
             return [g.name for g in result.groups]
@@ -36,19 +36,15 @@ class APIDiscovery:
         self, group: str, version: str
     ) -> list[dict[str, Any]]:
         """Return all resources available for an API group and version."""
-        from kubernetes import client as k8s_client
+        import json
 
-        api = k8s_client.ApisApi(self.client._client)
         try:
-            result = api.get_api_group(group)
-            for v in result.versions:
-                if v.version == version:
-                    resource_api = k8s_client.CustomObjectsApi(
-                        self.client._client
-                    )
-                    _ = resource_api  # placeholder — real impl uses discovery endpoint
-                    break
-            return []
+            resp = self.client._api_client.call_api(  # type: ignore[attr-defined]  # missing from kubernetes-stubs
+                f"/apis/{group}/{version}", "GET", _preload_content=False
+            )
+            body = resp.data if hasattr(resp, "data") else resp[0].data
+            parsed: dict[str, Any] = json.loads(body)
+            return list(parsed.get("resources", []))
         except (ApiException, AttributeError):
             return []
 
@@ -66,11 +62,11 @@ class APIDiscovery:
                 spec = crd.spec
                 crds.append(
                     {
-                        "name": crd.metadata.name,
+                        "name": crd.metadata.name if crd.metadata else None,
                         "group": spec.group if spec else None,
-                        "versions": [
-                            v.name for v in (spec.versions or [])
-                        ] if spec else [],
+                        "versions": (
+                            [v.name for v in (spec.versions or [])] if spec else []
+                        ),
                         "plural": spec.names.plural if spec and spec.names else None,
                         "kind": spec.names.kind if spec and spec.names else None,
                         "scope": spec.scope if spec else None,

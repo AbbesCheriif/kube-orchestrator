@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import Any
 
 from kubernetes.client import CoreV1Api, V1ResourceQuota
-from kubernetes.client.rest import ApiException
+from kubernetes.client.exceptions import ApiException
 
-from kube_orchestrator.core.exceptions import parse_api_exception
+from kube_orchestrator.core.exceptions import ResourceNotFoundError, parse_api_exception
 from kube_orchestrator.resources.base import BaseResourceManager
 from kube_orchestrator.resources.helpers import build_metadata
 
@@ -21,6 +21,9 @@ class ResourceQuotaManager(BaseResourceManager[V1ResourceQuota]):
     def _kind(self) -> str:
         return "ResourceQuota"
 
+    def _resource_name(self) -> str:
+        return "resource_quota"
+
     def _api_version(self) -> str:
         return "v1"
 
@@ -28,10 +31,10 @@ class ResourceQuotaManager(BaseResourceManager[V1ResourceQuota]):
         self,
         name: str,
         namespace: str,
-        hard: dict,
+        hard: dict[str, Any],
         scopes: list[str] | None = None,
-        scope_selector: dict | None = None,
-        labels: dict | None = None,
+        scope_selector: dict[str, Any] | None = None,
+        labels: dict[str, Any] | None = None,
     ) -> V1ResourceQuota:
         spec: dict[str, Any] = {"hard": hard}
         if scopes:
@@ -50,11 +53,13 @@ class ResourceQuotaManager(BaseResourceManager[V1ResourceQuota]):
         self,
         name: str,
         namespace: str,
-        hard: dict,
+        hard: dict[str, Any],
     ) -> V1ResourceQuota:
         quota = self.get_quota(name, namespace)
+        if quota.spec is None:
+            raise ResourceNotFoundError(self._kind(), name, namespace)
         quota.spec.hard = hard
-        return self.update(name, quota.to_dict(), namespace)
+        return self.update(name, dict(quota.to_dict()), namespace)
 
     def get_quota(self, name: str, namespace: str) -> V1ResourceQuota:
         return self.get(name, namespace)
@@ -65,14 +70,14 @@ class ResourceQuotaManager(BaseResourceManager[V1ResourceQuota]):
     def delete_quota(self, name: str, namespace: str) -> None:
         self.delete(name, namespace)
 
-    def get_used(self, name: str, namespace: str) -> dict:
+    def get_used(self, name: str, namespace: str) -> dict[str, Any]:
         """Return the currently-used resource quantities."""
         quota = self.get_quota(name, namespace)
         if quota.status and quota.status.used:
             return dict(quota.status.used)
         return {}
 
-    def get_remaining(self, name: str, namespace: str) -> dict:
+    def get_remaining(self, name: str, namespace: str) -> dict[str, Any]:
         """Return remaining capacity (hard − used) for each resource."""
         quota = self.get_quota(name, namespace)
         if not quota.status:
@@ -95,9 +100,12 @@ class ResourceQuotaManager(BaseResourceManager[V1ResourceQuota]):
                     continue
                 hard = dict(quota.status.hard or {})
                 used = dict(quota.status.used or {})
-                if resource in hard and resource in used:
-                    if used[resource] >= hard[resource]:
-                        return True
+                if (
+                    resource in hard
+                    and resource in used
+                    and used[resource] >= hard[resource]
+                ):
+                    return True
             return False
         except ApiException as exc:
             raise parse_api_exception(exc) from exc

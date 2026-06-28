@@ -39,7 +39,7 @@ class PodBuilder:
         args: list[str] | None = None,
         working_dir: str | None = None,
         image_pull_policy: str = "IfNotPresent",
-    ) -> "PodBuilder":
+    ) -> PodBuilder:
         container: dict[str, Any] = {
             "name": name,
             "image": image,
@@ -54,7 +54,7 @@ class PodBuilder:
         self._containers[name] = container
         return self
 
-    def with_env(self, container_name: str, name: str, value: str) -> "PodBuilder":
+    def with_env(self, container_name: str, name: str, value: str) -> PodBuilder:
         self._containers[container_name].setdefault("env", []).append(
             {"name": name, "value": value}
         )
@@ -62,7 +62,7 @@ class PodBuilder:
 
     def with_env_from_configmap(
         self, container_name: str, env_name: str, configmap_name: str, key: str
-    ) -> "PodBuilder":
+    ) -> PodBuilder:
         self._containers[container_name].setdefault("env", []).append(
             {
                 "name": env_name,
@@ -73,7 +73,7 @@ class PodBuilder:
 
     def with_env_from_secret(
         self, container_name: str, env_name: str, secret_name: str, key: str
-    ) -> "PodBuilder":
+    ) -> PodBuilder:
         self._containers[container_name].setdefault("env", []).append(
             {
                 "name": env_name,
@@ -88,7 +88,7 @@ class PodBuilder:
         configmap_name: str | None = None,
         secret_name: str | None = None,
         prefix: str | None = None,
-    ) -> "PodBuilder":
+    ) -> PodBuilder:
         entry: dict[str, Any] = {}
         if configmap_name:
             entry["configMapRef"] = {"name": configmap_name}
@@ -99,7 +99,9 @@ class PodBuilder:
         self._containers[container_name].setdefault("envFrom", []).append(entry)
         return self
 
-    def with_ports(self, container_name: str, ports: list[dict]) -> "PodBuilder":
+    def with_ports(
+        self, container_name: str, ports: list[dict[str, Any]]
+    ) -> PodBuilder:
         self._containers[container_name]["ports"] = ports
         return self
 
@@ -111,7 +113,7 @@ class PodBuilder:
         cpu_limit: str | None = None,
         memory_limit: str | None = None,
         ephemeral_storage_limit: str | None = None,
-    ) -> "PodBuilder":
+    ) -> PodBuilder:
         requests: dict[str, str] = {}
         limits: dict[str, str] = {}
         if cpu_request:
@@ -141,7 +143,7 @@ class PodBuilder:
         read_only: bool = False,
         mount_propagation: str | None = None,
         sub_path_expr: str | None = None,
-    ) -> "PodBuilder":
+    ) -> PodBuilder:
         mount: dict[str, Any] = {
             "name": name,
             "mountPath": mount_path,
@@ -159,66 +161,87 @@ class PodBuilder:
     def with_liveness_probe(
         self,
         container_name: str,
-        exec_command: list | None = None,
-        http_get: dict | None = None,
-        tcp_socket: dict | None = None,
-        grpc: dict | None = None,
+        exec_command: list[Any] | None = None,
+        http_get: dict[str, Any] | None = None,
+        tcp_socket: dict[str, Any] | None = None,
+        grpc: dict[str, Any] | None = None,
         initial_delay: int = 0,
         period: int = 10,
         timeout: int = 1,
         success_threshold: int = 1,
         failure_threshold: int = 3,
-    ) -> "PodBuilder":
+    ) -> PodBuilder:
         self._containers[container_name]["livenessProbe"] = self._build_probe(
-            exec_command, http_get, tcp_socket, grpc,
-            initial_delay, period, timeout, success_threshold, failure_threshold,
+            exec_command,
+            http_get,
+            tcp_socket,
+            grpc,
+            initial_delay,
+            period,
+            timeout,
+            success_threshold,
+            failure_threshold,
         )
         return self
 
     def with_readiness_probe(
         self,
         container_name: str,
-        exec_command: list | None = None,
-        http_get: dict | None = None,
-        tcp_socket: dict | None = None,
-        grpc: dict | None = None,
+        exec_command: list[Any] | None = None,
+        http_get: dict[str, Any] | None = None,
+        tcp_socket: dict[str, Any] | None = None,
+        grpc: dict[str, Any] | None = None,
         initial_delay: int = 0,
         period: int = 10,
         timeout: int = 1,
         success_threshold: int = 1,
         failure_threshold: int = 3,
-    ) -> "PodBuilder":
+    ) -> PodBuilder:
         self._containers[container_name]["readinessProbe"] = self._build_probe(
-            exec_command, http_get, tcp_socket, grpc,
-            initial_delay, period, timeout, success_threshold, failure_threshold,
+            exec_command,
+            http_get,
+            tcp_socket,
+            grpc,
+            initial_delay,
+            period,
+            timeout,
+            success_threshold,
+            failure_threshold,
         )
         return self
 
     def with_startup_probe(
         self,
         container_name: str,
-        exec_command: list | None = None,
-        http_get: dict | None = None,
-        tcp_socket: dict | None = None,
-        grpc: dict | None = None,
+        exec_command: list[Any] | None = None,
+        http_get: dict[str, Any] | None = None,
+        tcp_socket: dict[str, Any] | None = None,
+        grpc: dict[str, Any] | None = None,
         initial_delay: int = 0,
         period: int = 10,
         timeout: int = 1,
         success_threshold: int = 1,
         failure_threshold: int = 3,
-    ) -> "PodBuilder":
+    ) -> PodBuilder:
         self._containers[container_name]["startupProbe"] = self._build_probe(
-            exec_command, http_get, tcp_socket, grpc,
-            initial_delay, period, timeout, success_threshold, failure_threshold,
+            exec_command,
+            http_get,
+            tcp_socket,
+            grpc,
+            initial_delay,
+            period,
+            timeout,
+            success_threshold,
+            failure_threshold,
         )
         return self
 
     def _build_probe(
         self,
-        exec_command: list | None,
-        http_get: dict | None,
-        tcp_socket: dict | None,
-        grpc: dict | None,
+        exec_command: list[Any] | None,
+        http_get: dict[str, Any] | None,
+        tcp_socket: dict[str, Any] | None,
+        grpc: dict[str, Any] | None,
         initial_delay: int,
         period: int,
         timeout: int,
@@ -245,9 +268,9 @@ class PodBuilder:
     def with_lifecycle(
         self,
         container_name: str,
-        post_start: dict | None = None,
-        pre_stop: dict | None = None,
-    ) -> "PodBuilder":
+        post_start: dict[str, Any] | None = None,
+        pre_stop: dict[str, Any] | None = None,
+    ) -> PodBuilder:
         lifecycle: dict[str, Any] = {}
         if post_start:
             lifecycle["postStart"] = post_start
@@ -265,10 +288,10 @@ class PodBuilder:
         read_only_root_fs: bool | None = None,
         allow_privilege_escalation: bool | None = None,
         privileged: bool | None = None,
-        capabilities_add: list | None = None,
-        capabilities_drop: list | None = None,
+        capabilities_add: list[Any] | None = None,
+        capabilities_drop: list[Any] | None = None,
         proc_mount: str | None = None,
-    ) -> "PodBuilder":
+    ) -> PodBuilder:
         ctx: dict[str, Any] = {}
         if run_as_user is not None:
             ctx["runAsUser"] = run_as_user
@@ -284,7 +307,7 @@ class PodBuilder:
             ctx["privileged"] = privileged
         if proc_mount:
             ctx["procMount"] = proc_mount
-        caps: dict[str, list] = {}
+        caps: dict[str, list[Any]] = {}
         if capabilities_add:
             caps["add"] = capabilities_add
         if capabilities_drop:
@@ -302,7 +325,7 @@ class PodBuilder:
         args: list[str] | None = None,
         working_dir: str | None = None,
         image_pull_policy: str = "IfNotPresent",
-    ) -> "PodBuilder":
+    ) -> PodBuilder:
         container: dict[str, Any] = {
             "name": name,
             "image": image,
@@ -327,10 +350,10 @@ class PodBuilder:
         config_map: str | None = None,
         secret: str | None = None,
         pvc: str | None = None,
-        empty_dir: dict | None = None,
-        host_path: dict | None = None,
-        projected: dict | None = None,
-    ) -> "PodBuilder":
+        empty_dir: dict[str, Any] | None = None,
+        host_path: dict[str, Any] | None = None,
+        projected: dict[str, Any] | None = None,
+    ) -> PodBuilder:
         vol: dict[str, Any] = {"name": name}
         if config_map:
             vol["configMap"] = {"name": config_map}
@@ -351,20 +374,20 @@ class PodBuilder:
     # Pod-level spec helpers
     # ------------------------------------------------------------------
 
-    def with_node_selector(self, labels: dict) -> "PodBuilder":
+    def with_node_selector(self, labels: dict[str, Any]) -> PodBuilder:
         self._spec["nodeSelector"] = labels
         return self
 
-    def with_node_name(self, name: str) -> "PodBuilder":
+    def with_node_name(self, name: str) -> PodBuilder:
         self._spec["nodeName"] = name
         return self
 
     def with_affinity(
         self,
-        node_affinity: dict | None = None,
-        pod_affinity: dict | None = None,
-        pod_anti_affinity: dict | None = None,
-    ) -> "PodBuilder":
+        node_affinity: dict[str, Any] | None = None,
+        pod_affinity: dict[str, Any] | None = None,
+        pod_anti_affinity: dict[str, Any] | None = None,
+    ) -> PodBuilder:
         affinity: dict[str, Any] = {}
         if node_affinity:
             affinity["nodeAffinity"] = node_affinity
@@ -375,31 +398,29 @@ class PodBuilder:
         self._spec["affinity"] = affinity
         return self
 
-    def with_tolerations(self, tolerations: list[dict]) -> "PodBuilder":
+    def with_tolerations(self, tolerations: list[dict[str, Any]]) -> PodBuilder:
         self._spec["tolerations"] = tolerations
         return self
 
-    def with_topology_spread(self, constraints: list[dict]) -> "PodBuilder":
+    def with_topology_spread(self, constraints: list[dict[str, Any]]) -> PodBuilder:
         self._spec["topologySpreadConstraints"] = constraints
         return self
 
-    def with_image_pull_secrets(self, secrets: list[str]) -> "PodBuilder":
+    def with_image_pull_secrets(self, secrets: list[str]) -> PodBuilder:
         self._spec["imagePullSecrets"] = [{"name": s} for s in secrets]
         return self
 
-    def with_service_account(
-        self, name: str, automount: bool = True
-    ) -> "PodBuilder":
+    def with_service_account(self, name: str, automount: bool = True) -> PodBuilder:
         self._spec["serviceAccountName"] = name
         self._spec["automountServiceAccountToken"] = automount
         return self
 
     def with_dns_config(
         self,
-        nameservers: list | None = None,
-        searches: list | None = None,
-        options: list | None = None,
-    ) -> "PodBuilder":
+        nameservers: list[Any] | None = None,
+        searches: list[Any] | None = None,
+        options: list[Any] | None = None,
+    ) -> PodBuilder:
         dns: dict[str, Any] = {}
         if nameservers:
             dns["nameservers"] = nameservers
@@ -410,19 +431,19 @@ class PodBuilder:
         self._spec["dnsConfig"] = dns
         return self
 
-    def with_dns_policy(self, policy: str) -> "PodBuilder":
+    def with_dns_policy(self, policy: str) -> PodBuilder:
         self._spec["dnsPolicy"] = policy
         return self
 
-    def with_host_network(self, enabled: bool) -> "PodBuilder":
+    def with_host_network(self, enabled: bool) -> PodBuilder:
         self._spec["hostNetwork"] = enabled
         return self
 
-    def with_host_pid(self, enabled: bool) -> "PodBuilder":
+    def with_host_pid(self, enabled: bool) -> PodBuilder:
         self._spec["hostPID"] = enabled
         return self
 
-    def with_host_ipc(self, enabled: bool) -> "PodBuilder":
+    def with_host_ipc(self, enabled: bool) -> PodBuilder:
         self._spec["hostIPC"] = enabled
         return self
 
@@ -431,34 +452,34 @@ class PodBuilder:
         hostname: str,
         subdomain: str | None = None,
         set_hostname_as_fqdn: bool = False,
-    ) -> "PodBuilder":
+    ) -> PodBuilder:
         self._spec["hostname"] = hostname
         if subdomain:
             self._spec["subdomain"] = subdomain
         self._spec["setHostnameAsFQDN"] = set_hostname_as_fqdn
         return self
 
-    def with_restart_policy(self, policy: str) -> "PodBuilder":
+    def with_restart_policy(self, policy: str) -> PodBuilder:
         self._spec["restartPolicy"] = policy
         return self
 
-    def with_termination_grace_period(self, seconds: int) -> "PodBuilder":
+    def with_termination_grace_period(self, seconds: int) -> PodBuilder:
         self._spec["terminationGracePeriodSeconds"] = seconds
         return self
 
-    def with_active_deadline(self, seconds: int) -> "PodBuilder":
+    def with_active_deadline(self, seconds: int) -> PodBuilder:
         self._spec["activeDeadlineSeconds"] = seconds
         return self
 
-    def with_priority(self, priority_class_name: str) -> "PodBuilder":
+    def with_priority(self, priority_class_name: str) -> PodBuilder:
         self._spec["priorityClassName"] = priority_class_name
         return self
 
-    def with_runtime_class(self, name: str) -> "PodBuilder":
+    def with_runtime_class(self, name: str) -> PodBuilder:
         self._spec["runtimeClassName"] = name
         return self
 
-    def with_scheduler(self, name: str) -> "PodBuilder":
+    def with_scheduler(self, name: str) -> PodBuilder:
         self._spec["schedulerName"] = name
         return self
 
@@ -469,9 +490,9 @@ class PodBuilder:
         run_as_non_root: bool | None = None,
         fs_group: int | None = None,
         fs_group_change_policy: str | None = None,
-        supplemental_groups: list | None = None,
-        sysctls: list | None = None,
-    ) -> "PodBuilder":
+        supplemental_groups: list[Any] | None = None,
+        sysctls: list[Any] | None = None,
+    ) -> PodBuilder:
         ctx: dict[str, Any] = {}
         if run_as_user is not None:
             ctx["runAsUser"] = run_as_user
@@ -490,21 +511,21 @@ class PodBuilder:
         self._pod_security_context = ctx
         return self
 
-    def with_readiness_gate(self, condition_type: str) -> "PodBuilder":
+    def with_readiness_gate(self, condition_type: str) -> PodBuilder:
         self._spec.setdefault("readinessGates", []).append(
             {"conditionType": condition_type}
         )
         return self
 
-    def with_scheduling_gate(self, name: str) -> "PodBuilder":
+    def with_scheduling_gate(self, name: str) -> PodBuilder:
         self._spec.setdefault("schedulingGates", []).append({"name": name})
         return self
 
-    def with_share_process_namespace(self, enabled: bool) -> "PodBuilder":
+    def with_share_process_namespace(self, enabled: bool) -> PodBuilder:
         self._spec["shareProcessNamespace"] = enabled
         return self
 
-    def with_os(self, name: str) -> "PodBuilder":
+    def with_os(self, name: str) -> PodBuilder:
         self._spec["os"] = {"name": name}
         return self
 
@@ -512,7 +533,7 @@ class PodBuilder:
     # Build
     # ------------------------------------------------------------------
 
-    def build(self) -> dict:
+    def build(self) -> dict[str, Any]:
         metadata: dict[str, Any] = {
             "name": self._name,
             "namespace": self._namespace,

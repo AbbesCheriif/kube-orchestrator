@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: kube-orchestrator:local
+    environment:
+      KUBECONFIG: /home/orchestrator/.kube/config
+      KUBE_CONTEXT: ${KUBE_CONTEXT:-}
+      KUBE_NAMESPACE: ${KUBE_NAMESPACE:-default}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: ${LOG_FORMAT:-console}
+    volumes:
+      - ${KUBECONFIG_HOST:-~/.kube/config}:/home/orchestrator/.kube/config:ro
+    command: ["--help"]

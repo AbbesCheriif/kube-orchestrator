@@ -1,0 +1,10 @@
+# Copy to docker-compose.override.yml to customize local development
+# without touching the tracked docker-compose.yml.
+services:
+  app:
+    environment:
+      KUBE_CONTEXT: docker-desktop
+      KUBE_NAMESPACE: default
+      LOG_LEVEL: DEBUG
+      LOG_FORMAT: console
+    command: ["doctor"]
