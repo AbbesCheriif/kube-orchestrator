@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 
@@ -17,7 +17,7 @@ def nodes_list(
     ] = "table",
 ) -> None:
     """List all cluster nodes with their status."""
-    from kube_orchestrator.cli.output import print_error, print_table
+    from kube_orchestrator.cli.output import print_error, print_json, print_table
     from kube_orchestrator.core.client import KubeClient
     from kube_orchestrator.resources.cluster.node import NodeManager
 
@@ -25,30 +25,36 @@ def nodes_list(
         client = KubeClient.get_instance()
         manager = NodeManager(kube_client=client)
         nodes = manager.list_nodes(label_selector=label_selector)
-        rows = []
+        items: list[dict[str, Any]] = []
         for n in nodes:
             meta = n.metadata
             if meta is None or not meta.name:
                 continue
-            ready = "Ready" if manager.is_ready(meta.name) else "NotReady"
-            schedulable = (
-                "Yes" if manager.is_schedulable(meta.name) else "No (cordoned)"
-            )
-            rows.append(
-                [
-                    meta.name,
-                    ready,
-                    schedulable,
-                    (
+            items.append(
+                {
+                    "name": meta.name,
+                    "status": "Ready" if manager.is_ready(meta.name) else "NotReady",
+                    "schedulable": (
+                        "Yes" if manager.is_schedulable(meta.name) else "No (cordoned)"
+                    ),
+                    "age": (
                         str(meta.creation_timestamp)[:10]
                         if meta.creation_timestamp
                         else "-"
                     ),
-                ]
+                }
             )
-        print_table(
-            headers=["NAME", "STATUS", "SCHEDULABLE", "AGE"], rows=rows, title="Nodes"
-        )
+        if output == "json":
+            print_json({"nodes": items})
+        else:
+            print_table(
+                headers=["NAME", "STATUS", "SCHEDULABLE", "AGE"],
+                rows=[
+                    [i["name"], i["status"], i["schedulable"], i["age"]]
+                    for i in items
+                ],
+                title="Nodes",
+            )
     except Exception as exc:
         print_error(f"Failed to list nodes: {exc}")
         raise typer.Exit(1) from exc

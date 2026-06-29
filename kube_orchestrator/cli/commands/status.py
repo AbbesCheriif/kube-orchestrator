@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 
@@ -26,11 +26,18 @@ def status(
     ] = "table",
 ) -> None:
     """Display the status of Deployments and Pods in the cluster."""
-    from kube_orchestrator.cli.output import print_error, print_info, print_table
+    from kube_orchestrator.cli.output import (
+        print_error,
+        print_info,
+        print_json,
+        print_table,
+        print_yaml,
+    )
 
     target_ns = None if all_namespaces else (namespace or "default")
     label = "all namespaces" if all_namespaces else f"namespace '{target_ns}'"
-    print_info(f"Fetching status for {label}...")
+    if output == "table":
+        print_info(f"Fetching status for {label}...")
 
     try:
         from kube_orchestrator.core.client import KubeClient
@@ -45,7 +52,7 @@ def status(
         deployments = dep_manager.list_deployments(namespace=ns_arg)
         pods = pod_manager.list_pods(namespace=ns_arg)
 
-        dep_rows = []
+        dep_items: list[dict[str, Any]] = []
         for d in deployments:
             meta = d.metadata
             spec = d.spec
@@ -54,40 +61,53 @@ def status(
             desired_replicas = (spec.replicas if spec else None) or 0
             available_replicas = (s.available_replicas if s else None) or 0
             creation_timestamp = meta.creation_timestamp if meta else None
-            dep_rows.append(
-                [
-                    (meta.namespace if meta else None) or "-",
-                    meta.name if meta else None,
-                    f"{ready_replicas}/{desired_replicas}",
-                    "Available" if available_replicas > 0 else "Unavailable",
-                    str(creation_timestamp)[:10] if creation_timestamp else "-",
-                ]
+            dep_items.append(
+                {
+                    "namespace": (meta.namespace if meta else None) or "-",
+                    "name": meta.name if meta else None,
+                    "ready": f"{ready_replicas}/{desired_replicas}",
+                    "status": (
+                        "Available" if available_replicas > 0 else "Unavailable"
+                    ),
+                    "age": str(creation_timestamp)[:10] if creation_timestamp else "-",
+                }
             )
 
-        pod_rows = []
+        pod_items: list[dict[str, Any]] = []
         for p in pods:
             meta = p.metadata
             phase = p.status.phase if p.status else "Unknown"
             creation_timestamp = meta.creation_timestamp if meta else None
-            pod_rows.append(
-                [
-                    (meta.namespace if meta else None) or "-",
-                    meta.name if meta else None,
-                    phase,
-                    str(creation_timestamp)[:10] if creation_timestamp else "-",
-                ]
+            pod_items.append(
+                {
+                    "namespace": (meta.namespace if meta else None) or "-",
+                    "name": meta.name if meta else None,
+                    "phase": phase,
+                    "age": str(creation_timestamp)[:10] if creation_timestamp else "-",
+                }
             )
 
-        print_table(
-            headers=["NAMESPACE", "NAME", "READY", "STATUS", "AGE"],
-            rows=dep_rows,
-            title="Deployments",
-        )
-        print_table(
-            headers=["NAMESPACE", "NAME", "PHASE", "AGE"],
-            rows=pod_rows,
-            title="Pods",
-        )
+        if output == "json":
+            print_json({"deployments": dep_items, "pods": pod_items})
+        elif output == "yaml":
+            print_yaml({"deployments": dep_items, "pods": pod_items})
+        else:
+            print_table(
+                headers=["NAMESPACE", "NAME", "READY", "STATUS", "AGE"],
+                rows=[
+                    [i["namespace"], i["name"], i["ready"], i["status"], i["age"]]
+                    for i in dep_items
+                ],
+                title="Deployments",
+            )
+            print_table(
+                headers=["NAMESPACE", "NAME", "PHASE", "AGE"],
+                rows=[
+                    [i["namespace"], i["name"], i["phase"], i["age"]]
+                    for i in pod_items
+                ],
+                title="Pods",
+            )
     except Exception as exc:
         print_error(f"Status check failed: {exc}")
         raise typer.Exit(1) from exc
