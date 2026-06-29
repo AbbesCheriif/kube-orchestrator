@@ -20,13 +20,17 @@ class ClusterHealthReporter:
         nodes = self.check_node_health()
         control_plane = self.check_control_plane()
         score = self._compute_global_score(nodes, control_plane)
+        not_checked: dict[str, Any] = {
+            "checked": False,
+            "reason": "no namespace specified",
+        }
         return {
             "score": score,
             "nodes": nodes,
             "control_plane": control_plane,
-            "workloads": {},
-            "storage": {},
-            "networking": {},
+            "workloads": dict(not_checked),
+            "storage": dict(not_checked),
+            "networking": dict(not_checked),
             "checked_at": datetime.utcnow().isoformat() + "Z",
         }
 
