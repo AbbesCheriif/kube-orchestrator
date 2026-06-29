@@ -47,6 +47,29 @@ def print_diff(diff: dict[str, Any]) -> None:
     _console.print(Panel(syntax, title="Diff", border_style="yellow"))
 
 
+def _format_health_section(section: str, data: dict[str, Any]) -> str:
+    if section == "nodes":
+        if "error" in data:
+            return f"[red]error: {data['error']}[/red]"
+        total = data.get("total", 0)
+        if total == 0:
+            return "no nodes found"
+        return f"{data.get('ready', 0)}/{total} ready"
+
+    if section == "control_plane":
+        parts = [
+            f"{name}={'up' if data.get(name) else 'down'}"
+            for name in ("api_server", "scheduler", "controller_manager")
+        ]
+        return ", ".join(parts)
+
+    if data.get("checked") is False:
+        return str(data.get("reason", "not checked"))
+    if not data:
+        return "not checked"
+    return ", ".join(f"{k}={v}" for k, v in data.items() if k != "namespace")
+
+
 def print_health_report(report: dict[str, Any]) -> None:
     score = report.get("score", 0)
     color = "green" if score >= 80 else ("yellow" if score >= 50 else "red")
@@ -56,7 +79,9 @@ def print_health_report(report: dict[str, Any]) -> None:
         if section in report:
             data = report[section]
             status = (
-                data.get("status", "unknown") if isinstance(data, dict) else str(data)
+                _format_health_section(section, data)
+                if isinstance(data, dict)
+                else str(data)
             )
             lines.append(
                 f"  [cyan]{section.replace('_', ' ').title()}:[/cyan] {status}"
