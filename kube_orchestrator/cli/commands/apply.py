@@ -5,7 +5,10 @@ from typing import Annotated, Any
 
 import typer
 
-app = typer.Typer(help="Apply Kubernetes manifests to the cluster")
+app = typer.Typer(
+    help="Apply Kubernetes manifests to the cluster",
+    context_settings={"allow_interspersed_args": True},
+)
 
 
 @app.callback(invoke_without_command=True)

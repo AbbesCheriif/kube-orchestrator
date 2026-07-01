@@ -4,7 +4,10 @@ from typing import Annotated
 
 import typer
 
-app = typer.Typer(help="Rollback a Deployment to a previous revision")
+app = typer.Typer(
+    help="Rollback a Deployment to a previous revision",
+    context_settings={"allow_interspersed_args": True},
+)
 
 
 @app.callback(invoke_without_command=True)

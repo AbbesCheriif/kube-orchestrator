@@ -4,7 +4,10 @@ from typing import Annotated
 
 import typer
 
-app = typer.Typer(help="Deploy a container image to Kubernetes")
+app = typer.Typer(
+    help="Deploy a container image to Kubernetes",
+    context_settings={"allow_interspersed_args": True},
+)
 
 
 @app.callback(invoke_without_command=True)
