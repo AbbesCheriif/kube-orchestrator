@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 
 from kube_orchestrator.manifest.renderer import (
+    get_available_filters,
+    get_available_functions,
+    inject_env_vars,
+    load_values_file,
     merge_values,
     override_values,
+    render_directory,
+    render_file,
     render_string,
 )
 
@@ -55,10 +63,183 @@ class TestRenderString:
         expected = base64.b64encode(b"hello").decode()
         assert expected in str(result[0])
 
-    def test_default_filter(self) -> None:
-        template = "replicas: {{ replicas | default(1) }}"
+    def test_default_function_undefined_variable(self) -> None:
+        template = "replicas: {{ default(replicas, 1) }}"
         result = render_string(template, values={})
         assert result[0]["replicas"] == 1
+
+    def test_default_function_none_value(self) -> None:
+        template = "replicas: {{ default(replicas, 1) }}"
+        result = render_string(template, values={"replicas": None})
+        assert result[0]["replicas"] == 1
+
+    def test_default_function_present_value_is_kept(self) -> None:
+        template = "replicas: {{ default(replicas, 1) }}"
+        result = render_string(template, values={"replicas": 5})
+        assert result[0]["replicas"] == 5
+
+    def test_b64decode_helper(self) -> None:
+        template = "value: {{ 'aGVsbG8=' | b64decode }}"
+        result = render_string(template, values={})
+        assert result[0]["value"] == "hello"
+
+    def test_sha256_helper(self) -> None:
+        import hashlib
+
+        template = "value: {{ 'hello' | sha256 }}"
+        result = render_string(template, values={})
+        assert result[0]["value"] == hashlib.sha256(b"hello").hexdigest()
+
+    def test_to_json_helper(self) -> None:
+        template = "value: '{{ data | to_json }}'"
+        result = render_string(template, values={"data": {"a": 1}})
+        assert result[0]["value"] == '{"a": 1}'
+
+    def test_from_json_helper(self) -> None:
+        template = "{{ '{\"a\": 1}' | from_json }}"
+        result = render_string(template, values={})
+        assert result[0] == {"a": 1}
+
+    def test_to_yaml_helper(self) -> None:
+        template = "value: |\n  {{ data | to_yaml | indent(2) }}"
+        result = render_string(template, values={"data": {"a": 1}})
+        assert "a: 1" in result[0]["value"]
+
+    def test_quote_helper(self) -> None:
+        template = "value: {{ 'hello' | quote }}"
+        result = render_string(template, values={})
+        assert result[0]["value"] == "hello"
+
+    def test_trim_suffix_helper(self) -> None:
+        template = "value: {{ 'app.yaml' | trim_suffix('.yaml') }}"
+        result = render_string(template, values={})
+        assert result[0]["value"] == "app"
+
+    def test_trim_suffix_no_match(self) -> None:
+        template = "value: {{ 'app.txt' | trim_suffix('.yaml') }}"
+        result = render_string(template, values={})
+        assert result[0]["value"] == "app.txt"
+
+    def test_trim_prefix_helper(self) -> None:
+        template = "value: {{ 'prefix-app' | trim_prefix('prefix-') }}"
+        result = render_string(template, values={})
+        assert result[0]["value"] == "app"
+
+    def test_trim_prefix_no_match(self) -> None:
+        template = "value: {{ 'app' | trim_prefix('prefix-') }}"
+        result = render_string(template, values={})
+        assert result[0]["value"] == "app"
+
+    def test_upper_lower_title_helpers(self) -> None:
+        template = (
+            "upper: {{ 'abc' | upper }}\n"
+            "lower: {{ 'ABC' | lower }}\n"
+            "title: {{ 'hello world' | title }}\n"
+        )
+        result = render_string(template, values={})
+        assert result[0] == {"upper": "ABC", "lower": "abc", "title": "Hello World"}
+
+    def test_required_raises_when_none(self) -> None:
+        template = "value: {{ required(missing_value) }}"
+        with pytest.raises(ValueError, match="Value is required"):
+            render_string(template, values={"missing_value": None})
+
+    def test_required_raises_when_undefined(self) -> None:
+        template = "value: {{ required(totally_undefined) }}"
+        with pytest.raises(ValueError, match="Value is required"):
+            render_string(template, values={})
+
+    def test_required_custom_message(self) -> None:
+        template = "value: {{ required(missing_value, 'custom message') }}"
+        with pytest.raises(ValueError, match="custom message"):
+            render_string(template, values={"missing_value": None})
+
+    def test_required_passes_through_value(self) -> None:
+        template = "value: {{ required(name) }}"
+        result = render_string(template, values={"name": "web"})
+        assert result[0]["value"] == "web"
+
+    def test_indent_helper_on_multiline(self) -> None:
+        template = "block: |\n{{ text | indent(2) }}"
+        result = render_string(template, values={"text": "line1\nline2"})
+        assert "line1" in result[0]["block"]
+
+
+@pytest.mark.unit
+class TestRenderFile:
+    def test_renders_templated_file(self, tmp_path) -> None:
+        path = tmp_path / "pod.yaml.j2"
+        path.write_text("kind: Pod\nmetadata:\n  name: {{ name }}\n")
+        result = render_file(str(path), {"name": "web"})
+        assert result[0]["metadata"]["name"] == "web"
+
+
+@pytest.mark.unit
+class TestRenderDirectory:
+    def test_renders_all_matching_files(self, tmp_path) -> None:
+        (tmp_path / "a.yaml").write_text("kind: Pod\nmetadata:\n  name: {{ name }}\n")
+        (tmp_path / "b.j2").write_text("kind: Service\nmetadata:\n  name: {{ name }}\n")
+        (tmp_path / "c.txt").write_text("not a template")
+
+        result = render_directory(str(tmp_path), {"name": "web"})
+        kinds = {m["kind"] for m in result}
+        assert kinds == {"Pod", "Service"}
+
+    def test_recursive_descends_into_subdirectories(self, tmp_path) -> None:
+        nested = tmp_path / "nested"
+        nested.mkdir()
+        (tmp_path / "top.yaml").write_text("kind: Pod\nmetadata:\n  name: top\n")
+        (nested / "inner.yaml").write_text("kind: Service\nmetadata:\n  name: inner\n")
+
+        assert len(render_directory(str(tmp_path), {}, recursive=False)) == 1
+        assert len(render_directory(str(tmp_path), {}, recursive=True)) == 2
+
+
+@pytest.mark.unit
+class TestLoadValuesFile:
+    def test_loads_yaml_values(self, tmp_path) -> None:
+        path = tmp_path / "values.yaml"
+        path.write_text("replicas: 3\n")
+        assert load_values_file(str(path)) == {"replicas": 3}
+
+    def test_loads_json_values(self, tmp_path) -> None:
+        path = tmp_path / "values.json"
+        path.write_text('{"replicas": 3}')
+        assert load_values_file(str(path)) == {"replicas": 3}
+
+    def test_non_mapping_yaml_returns_empty_dict(self, tmp_path) -> None:
+        path = tmp_path / "values.yaml"
+        path.write_text("- a\n- b\n")
+        assert load_values_file(str(path)) == {}
+
+
+@pytest.mark.unit
+class TestInjectEnvVars:
+    def test_merges_environment_into_env_key(self) -> None:
+        with patch.dict("os.environ", {"MY_VAR": "hello"}, clear=False):
+            result = inject_env_vars({"replicas": 1})
+        assert result["env"]["MY_VAR"] == "hello"
+        assert result["replicas"] == 1
+
+    def test_preserves_existing_env_key(self) -> None:
+        with patch.dict("os.environ", {"MY_VAR": "hello"}, clear=False):
+            result = inject_env_vars({"env": {"CUSTOM": "value"}})
+        assert result["env"]["CUSTOM"] == "value"
+        assert result["env"]["MY_VAR"] == "hello"
+
+
+@pytest.mark.unit
+class TestFilterAndFunctionRegistry:
+    def test_get_available_filters_returns_copy(self) -> None:
+        filters = get_available_filters()
+        assert "b64encode" in filters
+        filters["new"] = "should not persist"
+        assert "new" not in get_available_filters()
+
+    def test_get_available_functions_returns_copy(self) -> None:
+        functions = get_available_functions()
+        assert "required" in functions
+        assert "default" in functions
 
 
 @pytest.mark.unit

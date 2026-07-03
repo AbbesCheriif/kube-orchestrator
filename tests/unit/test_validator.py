@@ -6,11 +6,15 @@ import pytest
 
 from kube_orchestrator.manifest.validator import (
     DEPENDENCY_ORDER,
+    detect_api_version,
+    detect_circular_deps,
     group_by_kind,
     group_by_namespace,
     order_by_dependency,
+    route_by_kind,
     validate_manifest,
     validate_required_fields,
+    validate_spec_for_kind,
 )
 
 
@@ -39,6 +43,109 @@ class TestValidateRequiredFields:
         manifest = {"apiVersion": "v1", "kind": "Pod", "metadata": {}}
         errors = validate_required_fields(manifest)
         assert any("name" in e for e in errors)
+
+    def test_metadata_not_a_mapping(self) -> None:
+        manifest = {"apiVersion": "v1", "kind": "Pod", "metadata": "not-a-dict"}
+        errors = validate_required_fields(manifest)
+        assert any("must be a mapping" in e for e in errors)
+
+
+@pytest.mark.unit
+class TestDetectApiVersion:
+    def test_returns_api_version(self) -> None:
+        assert detect_api_version({"apiVersion": "apps/v1"}) == "apps/v1"
+
+    def test_returns_empty_string_when_missing(self) -> None:
+        assert detect_api_version({}) == ""
+
+
+@pytest.mark.unit
+class TestRouteByKind:
+    def test_returns_manager_class_for_known_kind(self) -> None:
+        from kube_orchestrator.resources.workloads.deployment import DeploymentManager
+
+        manager_cls = route_by_kind({"kind": "Deployment"})
+        assert manager_cls is DeploymentManager
+
+    def test_returns_none_for_unknown_kind(self) -> None:
+        assert route_by_kind({"kind": "TotallyUnknownKind"}) is None
+
+    def test_returns_none_when_kind_missing(self) -> None:
+        assert route_by_kind({}) is None
+
+
+@pytest.mark.unit
+class TestValidateSpecForKind:
+    def test_deployment_missing_spec(self) -> None:
+        errors = validate_spec_for_kind({"kind": "Deployment"})
+        assert any("must have a 'spec'" in e for e in errors)
+
+    def test_deployment_missing_selector_and_template(self) -> None:
+        errors = validate_spec_for_kind(
+            {"kind": "Deployment", "spec": {"replicas": 1}}
+        )
+        assert any("selector" in e for e in errors)
+        assert any("template" in e for e in errors)
+
+    def test_deployment_valid_spec(self) -> None:
+        errors = validate_spec_for_kind(
+            {"kind": "Deployment", "spec": {"selector": {}, "template": {}}}
+        )
+        assert errors == []
+
+    def test_service_missing_spec(self) -> None:
+        errors = validate_spec_for_kind({"kind": "Service"})
+        assert any("must have a 'spec'" in e for e in errors)
+
+    def test_service_missing_ports(self) -> None:
+        errors = validate_spec_for_kind(
+            {"kind": "Service", "spec": {"selector": {}}}
+        )
+        assert any("must have 'ports'" in e for e in errors)
+
+    def test_service_valid_spec(self) -> None:
+        errors = validate_spec_for_kind({"kind": "Service", "spec": {"ports": []}})
+        assert errors == []
+
+    def test_hpa_missing_spec(self) -> None:
+        errors = validate_spec_for_kind({"kind": "HorizontalPodAutoscaler"})
+        assert any("must have a 'spec'" in e for e in errors)
+
+    def test_hpa_missing_scale_target_and_max_replicas(self) -> None:
+        errors = validate_spec_for_kind(
+            {"kind": "HorizontalPodAutoscaler", "spec": {"minReplicas": 1}}
+        )
+        assert any("scaleTargetRef" in e for e in errors)
+        assert any("maxReplicas" in e for e in errors)
+
+    def test_hpa_valid_spec(self) -> None:
+        errors = validate_spec_for_kind(
+            {
+                "kind": "HorizontalPodAutoscaler",
+                "spec": {"scaleTargetRef": {}, "maxReplicas": 5},
+            }
+        )
+        assert errors == []
+
+    def test_ingress_missing_spec(self) -> None:
+        errors = validate_spec_for_kind({"kind": "Ingress"})
+        assert any("must have a 'spec'" in e for e in errors)
+
+    def test_unrecognized_kind_has_no_errors(self) -> None:
+        assert validate_spec_for_kind({"kind": "ConfigMap", "spec": {}}) == []
+
+
+@pytest.mark.unit
+class TestDetectCircularDeps:
+    def test_returns_empty_list(self) -> None:
+        manifests = [
+            {"kind": "ConfigMap", "metadata": {"name": "cfg"}},
+            {"kind": "HorizontalPodAutoscaler", "metadata": {"name": "hpa"}},
+        ]
+        assert detect_circular_deps(manifests) == []
+
+    def test_ignores_manifests_without_kind_or_name(self) -> None:
+        assert detect_circular_deps([{"metadata": {}}, {}]) == []
 
 
 @pytest.mark.unit
