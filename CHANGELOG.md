@@ -133,6 +133,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   -r kube_orchestrator/ -ll` failed the "security" job with a Medium
   (unvalidated URL scheme in `load_url`) and a High (Jinja2
   `autoescape=False`) finding, now fixed/documented.
+- `release.yml`'s `publish-ghcr` job used `github.repository_owner`
+  (`AbbesCheriif`) directly in the image tag; Docker/OCI repository
+  names must be lowercase, so every build failed with
+  "repository name must be lowercase".
 
 [Unreleased]: https://github.com/AbbesCheriif/kube-orchestrator/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/AbbesCheriif/kube-orchestrator/releases/tag/v1.0.0
