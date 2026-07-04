@@ -123,6 +123,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `resources.workloads` and `resources.cluster` were each missing several
   managers that already existed (`DeploymentManager`, `ReplicaSetManager`,
   `StatefulSetManager`, `HPAManager`, `NodeManager`).
+- `kubernetes-stubs>=28.1.0` in the `dev` extra doesn't exist on PyPI
+  (that package's own versioning tops out at `22.6.0.post1`), so
+  `pip install -e ".[dev]"` — the exact command `tests.yml` and
+  `lint.yml` run — failed outright; `ruff`, used by `lint.yml`, was
+  also never declared as a dependency anywhere.
 
 [Unreleased]: https://github.com/AbbesCheriif/kube-orchestrator/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/AbbesCheriif/kube-orchestrator/releases/tag/v1.0.0
