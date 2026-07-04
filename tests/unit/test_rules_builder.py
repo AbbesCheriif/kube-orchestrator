@@ -62,7 +62,14 @@ class TestRulesBuilder:
 
     def test_read_write(self) -> None:
         rules = RulesBuilder().read_write().build()
-        assert rules[0]["verbs"] == ["get", "list", "watch", "create", "update", "patch"]
+        assert rules[0]["verbs"] == [
+            "get",
+            "list",
+            "watch",
+            "create",
+            "update",
+            "patch",
+        ]
 
     def test_admin(self) -> None:
         rules = RulesBuilder().admin().build()

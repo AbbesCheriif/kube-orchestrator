@@ -78,9 +78,7 @@ class TestNamespaceScopeManagers:
         assert isinstance(manager, ConfigMapManager)
         assert manager.default_namespace == "production"
 
-    def test_secrets_returns_scoped_secret_manager(
-        self, scope: NamespaceScope
-    ) -> None:
+    def test_secrets_returns_scoped_secret_manager(self, scope: NamespaceScope) -> None:
         from kube_orchestrator.resources.storage.secret import SecretManager
 
         manager = scope.secrets()
@@ -106,6 +104,5 @@ class TestNamespaceScopeContextManager:
             assert entered is scope
 
     def test_exit_does_not_suppress_exceptions(self, scope: NamespaceScope) -> None:
-        with pytest.raises(ValueError, match="boom"):
-            with scope:
-                raise ValueError("boom")
+        with pytest.raises(ValueError, match="boom"), scope:
+            raise ValueError("boom")

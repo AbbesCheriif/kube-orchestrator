@@ -65,7 +65,9 @@ class TestConfigMapManager:
             name="bin-config", namespace="default", binary_data={"blob": b"raw"}
         )
         call_body = mock_core_v1.create_namespaced_config_map.call_args.kwargs["body"]
-        assert call_body.binary_data == {"blob": base64.b64encode(b"raw").decode("ascii")}
+        assert call_body.binary_data == {
+            "blob": base64.b64encode(b"raw").decode("ascii")
+        }
 
     def test_create_from_file(
         self, cm_manager: ConfigMapManager, mock_core_v1: MagicMock, tmp_path
@@ -98,9 +100,9 @@ class TestConfigMapManager:
         # The recursive call re-invokes create_configmap for the nested dir,
         # so the mock must echo back the real body it was called with instead
         # of a bare MagicMock, otherwise `sub.data` isn't a real dict to merge.
-        mock_core_v1.create_namespaced_config_map.side_effect = (
-            lambda **kwargs: kwargs["body"]
-        )
+        mock_core_v1.create_namespaced_config_map.side_effect = lambda **kwargs: kwargs[
+            "body"
+        ]
 
         cm_manager.create_from_directory(
             "from-dir", "default", str(tmp_path), recursive=True

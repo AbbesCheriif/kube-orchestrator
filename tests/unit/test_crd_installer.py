@@ -87,14 +87,12 @@ class TestInstall:
         self, installer: CRDInstaller, crd_api: MagicMock
     ) -> None:
         crd_api.read_custom_resource_definition.side_effect = ApiException(status=404)
-        crd_api.create_custom_resource_definition.side_effect = ApiException(
-            status=409
-        )
+        crd_api.create_custom_resource_definition.side_effect = ApiException(status=409)
         with pytest.raises(ResourceAlreadyExistsError):
             installer.install(dict(MANIFEST))
 
     def test_install_from_file(
-        self, installer: CRDInstaller, crd_api: MagicMock, tmp_path: "object"
+        self, installer: CRDInstaller, crd_api: MagicMock, tmp_path: object
     ) -> None:
         import pathlib
 
@@ -119,9 +117,7 @@ class TestUninstall:
     def test_raises_parsed_exception(
         self, installer: CRDInstaller, crd_api: MagicMock
     ) -> None:
-        crd_api.delete_custom_resource_definition.side_effect = ApiException(
-            status=500
-        )
+        crd_api.delete_custom_resource_definition.side_effect = ApiException(status=500)
         with pytest.raises(APIError):
             installer.uninstall("foos.example.com")
 
@@ -138,7 +134,10 @@ class TestWaitForEstablished:
         crd.status.conditions = [condition]
         crd_api.read_custom_resource_definition.return_value = crd
 
-        assert installer.wait_for_established("foos.example.com", timeout_seconds=5) is True
+        assert (
+            installer.wait_for_established("foos.example.com", timeout_seconds=5)
+            is True
+        )
 
     def test_returns_false_when_timeout_elapses(
         self, installer: CRDInstaller, crd_api: MagicMock
@@ -147,7 +146,10 @@ class TestWaitForEstablished:
         crd.status.conditions = []
         crd_api.read_custom_resource_definition.return_value = crd
 
-        assert installer.wait_for_established("foos.example.com", timeout_seconds=0) is False
+        assert (
+            installer.wait_for_established("foos.example.com", timeout_seconds=0)
+            is False
+        )
 
     def test_ignores_api_exceptions_while_polling(
         self, installer: CRDInstaller, crd_api: MagicMock
@@ -155,9 +157,7 @@ class TestWaitForEstablished:
         crd_api.read_custom_resource_definition.side_effect = ApiException(status=404)
         with patch("kube_orchestrator.crd.installer.time.sleep"):
             assert (
-                installer.wait_for_established(
-                    "foos.example.com", timeout_seconds=0.05
-                )
+                installer.wait_for_established("foos.example.com", timeout_seconds=0.05)
                 is False
             )
         crd_api.read_custom_resource_definition.assert_called()
@@ -176,7 +176,9 @@ class TestListCrds:
 
         assert result == [crd_a, crd_b]
 
-    def test_filters_by_group(self, installer: CRDInstaller, crd_api: MagicMock) -> None:
+    def test_filters_by_group(
+        self, installer: CRDInstaller, crd_api: MagicMock
+    ) -> None:
         crd_a = MagicMock()
         crd_a.spec.group = "example.com"
         crd_b = MagicMock()

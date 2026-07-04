@@ -6,7 +6,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kube_orchestrator.resources.cluster.node import NodeManager, _parse_cpu, _parse_memory
+from kube_orchestrator.resources.cluster.node import (
+    NodeManager,
+    _parse_cpu,
+    _parse_memory,
+)
 
 
 @pytest.fixture
@@ -313,9 +317,7 @@ class TestNodeManagerInfo:
 
 @pytest.mark.unit
 class TestNodeManagerPodsAndUsage:
-    def test_get_pods(
-        self, node_manager: NodeManager, mock_core_v1: MagicMock
-    ) -> None:
+    def test_get_pods(self, node_manager: NodeManager, mock_core_v1: MagicMock) -> None:
         mock_core_v1.list_pod_for_all_namespaces.return_value.items = ["pod-a"]
         assert node_manager.get_pods("worker-1") == ["pod-a"]
 

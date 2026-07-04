@@ -32,9 +32,7 @@ class TestWithRetry:
         func.assert_called_once_with(1, key="value")
 
     def test_retries_on_transient_api_error_then_succeeds(self) -> None:
-        func = MagicMock(
-            side_effect=[ApiException(status=503), "ok"]
-        )
+        func = MagicMock(side_effect=[ApiException(status=503), "ok"])
         cfg = RetryConfig(max_attempts=3, wait_fixed=0, wait_exponential_multiplier=0)
         with patch("kube_orchestrator.core.middleware.time.sleep"):
             wrapped = with_retry(func, cfg)
@@ -105,9 +103,8 @@ class TestTimeoutManager:
 
     def test_apply_timeout_restores_after_exception(self) -> None:
         mgr = TimeoutManager(default_timeout=30)
-        with pytest.raises(ValueError):
-            with mgr.apply_timeout(120):
-                raise ValueError("boom")
+        with pytest.raises(ValueError), mgr.apply_timeout(120):
+            raise ValueError("boom")
         assert mgr.active_timeout == 30
 
     def test_nested_apply_timeout(self) -> None:

@@ -180,7 +180,10 @@ class TestGetWhoCan:
 @pytest.mark.unit
 class TestAuditServiceAccount:
     def test_combines_permissions_and_access_checks(
-        self, validator: AccessValidator, mock_kube_client: MagicMock, auth_api: MagicMock
+        self,
+        validator: AccessValidator,
+        mock_kube_client: MagicMock,
+        auth_api: MagicMock,
     ) -> None:
         mock_kube_client.rbac_v1.list_namespaced_role_binding.return_value.items = []
         mock_kube_client.rbac_v1.list_cluster_role_binding.return_value.items = []

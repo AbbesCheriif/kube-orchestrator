@@ -84,9 +84,7 @@ class TestKubeConfig:
 
     def test_load_from_incluster_sets_context(self) -> None:
         cfg = KubeConfig()
-        with patch(
-            "kube_orchestrator.core.config.load_incluster_config"
-        ) as mock_load:
+        with patch("kube_orchestrator.core.config.load_incluster_config") as mock_load:
             cfg.load_from_incluster()
         mock_load.assert_called_once()
         assert cfg._active_context == "in-cluster"

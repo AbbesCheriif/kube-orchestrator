@@ -103,8 +103,7 @@ def status(
             print_table(
                 headers=["NAMESPACE", "NAME", "PHASE", "AGE"],
                 rows=[
-                    [i["namespace"], i["name"], i["phase"], i["age"]]
-                    for i in pod_items
+                    [i["namespace"], i["name"], i["phase"], i["age"]] for i in pod_items
                 ],
                 title="Pods",
             )

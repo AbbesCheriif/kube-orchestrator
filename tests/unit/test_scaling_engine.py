@@ -98,7 +98,9 @@ class TestScalingEngineGetSetReplicas:
     def test_get_replicas_deployment(
         self, engine: ScalingEngine, mock_kube_client: MagicMock
     ) -> None:
-        mock_kube_client.apps_v1.read_namespaced_deployment.return_value.spec.replicas = 3
+        mock_kube_client.apps_v1.read_namespaced_deployment.return_value.spec.replicas = (
+            3
+        )
         assert engine._get_replicas("web", "default", "Deployment") == 3
 
     def test_get_replicas_statefulset(
@@ -157,7 +159,9 @@ class TestScalingEngineScaleWithStrategy:
     def test_scales_when_desired_differs_from_current(
         self, engine: ScalingEngine, mock_kube_client: MagicMock
     ) -> None:
-        mock_kube_client.apps_v1.read_namespaced_deployment.return_value.spec.replicas = 2
+        mock_kube_client.apps_v1.read_namespaced_deployment.return_value.spec.replicas = (
+            2
+        )
         strategy = CPUScalingStrategy(target_cpu_utilization=50)
         engine.scale_with_strategy(
             "web", "default", "Deployment", strategy, {"cpu_utilization": 100}
@@ -169,7 +173,9 @@ class TestScalingEngineScaleWithStrategy:
     def test_does_not_scale_when_desired_equals_current(
         self, engine: ScalingEngine, mock_kube_client: MagicMock
     ) -> None:
-        mock_kube_client.apps_v1.read_namespaced_deployment.return_value.spec.replicas = 2
+        mock_kube_client.apps_v1.read_namespaced_deployment.return_value.spec.replicas = (
+            2
+        )
         strategy = CPUScalingStrategy(target_cpu_utilization=50)
         engine.scale_with_strategy(
             "web", "default", "Deployment", strategy, {"cpu_utilization": 50}
@@ -179,7 +185,9 @@ class TestScalingEngineScaleWithStrategy:
     def test_defaults_metrics_to_empty_dict_without_crashing(
         self, engine: ScalingEngine, mock_kube_client: MagicMock
     ) -> None:
-        mock_kube_client.apps_v1.read_namespaced_deployment.return_value.spec.replicas = 4
+        mock_kube_client.apps_v1.read_namespaced_deployment.return_value.spec.replicas = (
+            4
+        )
         strategy = CPUScalingStrategy(target_cpu_utilization=70)
         engine.scale_with_strategy("web", "default", "Deployment", strategy)
         mock_kube_client.apps_v1.read_namespaced_deployment.assert_called_once()

@@ -70,7 +70,9 @@ class TestIngressManager:
             "my-ingress",
             "default",
             ingress_class_name="nginx",
-            default_backend={"service": {"name": "default-svc", "port": {"number": 80}}},
+            default_backend={
+                "service": {"name": "default-svc", "port": {"number": 80}}
+            },
             tls=[{"hosts": ["example.com"], "secretName": "tls-secret"}],
         )
         call_kwargs = mock_networking_v1.create_namespaced_ingress.call_args.kwargs
@@ -93,7 +95,11 @@ class TestIngressManager:
                             {
                                 "path": "/assets",
                                 "backend": {
-                                    "resource": {"apiGroup": "k8s.io", "kind": "StorageBucket", "name": "assets"}
+                                    "resource": {
+                                        "apiGroup": "k8s.io",
+                                        "kind": "StorageBucket",
+                                        "name": "assets",
+                                    }
                                 },
                             }
                         ]
@@ -247,7 +253,11 @@ class TestIngressManager:
             "my-ingress",
             "default",
             default_backend={
-                "resource": {"apiGroup": "k8s.io", "kind": "StorageBucket", "name": "assets"}
+                "resource": {
+                    "apiGroup": "k8s.io",
+                    "kind": "StorageBucket",
+                    "name": "assets",
+                }
             },
         )
         call_kwargs = mock_networking_v1.create_namespaced_ingress.call_args.kwargs

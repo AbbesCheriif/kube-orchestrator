@@ -160,9 +160,7 @@ class TestWaitHelpers:
             status=MagicMock(phase="Pending")
         )
         with patch("kube_orchestrator.resources.storage.persistent_volume.time.sleep"):
-            assert (
-                pv_manager.wait_for_available("pv-1", timeout_seconds=0.05) is False
-            )
+            assert pv_manager.wait_for_available("pv-1", timeout_seconds=0.05) is False
 
     def test_wait_for_released_returns_true_when_reached(
         self, pv_manager: PersistentVolumeManager, mock_core_v1: MagicMock
@@ -179,9 +177,7 @@ class TestWaitHelpers:
             status=MagicMock(phase="Bound")
         )
         with patch("kube_orchestrator.resources.storage.persistent_volume.time.sleep"):
-            assert (
-                pv_manager.wait_for_released("pv-1", timeout_seconds=0.05) is False
-            )
+            assert pv_manager.wait_for_released("pv-1", timeout_seconds=0.05) is False
 
 
 @pytest.mark.unit

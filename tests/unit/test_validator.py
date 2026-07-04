@@ -81,9 +81,7 @@ class TestValidateSpecForKind:
         assert any("must have a 'spec'" in e for e in errors)
 
     def test_deployment_missing_selector_and_template(self) -> None:
-        errors = validate_spec_for_kind(
-            {"kind": "Deployment", "spec": {"replicas": 1}}
-        )
+        errors = validate_spec_for_kind({"kind": "Deployment", "spec": {"replicas": 1}})
         assert any("selector" in e for e in errors)
         assert any("template" in e for e in errors)
 
@@ -98,9 +96,7 @@ class TestValidateSpecForKind:
         assert any("must have a 'spec'" in e for e in errors)
 
     def test_service_missing_ports(self) -> None:
-        errors = validate_spec_for_kind(
-            {"kind": "Service", "spec": {"selector": {}}}
-        )
+        errors = validate_spec_for_kind({"kind": "Service", "spec": {"selector": {}}})
         assert any("must have 'ports'" in e for e in errors)
 
     def test_service_valid_spec(self) -> None:

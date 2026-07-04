@@ -38,18 +38,22 @@ class TestReplicasAndSelector:
 
     def test_with_selector_match_expressions(self) -> None:
         expr = [{"key": "tier", "operator": "In", "values": ["frontend"]}]
-        manifest = DeploymentBuilder("web").with_selector(
-            {"app": "web"}, match_expressions=expr
-        ).build()
+        manifest = (
+            DeploymentBuilder("web")
+            .with_selector({"app": "web"}, match_expressions=expr)
+            .build()
+        )
         assert manifest["spec"]["selector"]["matchExpressions"] == expr
 
 
 @pytest.mark.unit
 class TestStrategy:
     def test_with_rolling_update(self) -> None:
-        manifest = DeploymentBuilder("web").with_rolling_update(
-            max_surge=2, max_unavailable=1
-        ).build()
+        manifest = (
+            DeploymentBuilder("web")
+            .with_rolling_update(max_surge=2, max_unavailable=1)
+            .build()
+        )
         assert manifest["spec"]["strategy"] == {
             "type": "RollingUpdate",
             "rollingUpdate": {"maxSurge": 2, "maxUnavailable": 1},
@@ -84,7 +88,10 @@ class TestPodTemplate:
     def test_uses_pod_labels_when_present(self) -> None:
         pod = PodBuilder("web", labels={"app": "web"}).with_container("app", "nginx")
         manifest = (
-            DeploymentBuilder("web").with_selector({"app": "web"}).with_pod_template(pod).build()
+            DeploymentBuilder("web")
+            .with_selector({"app": "web"})
+            .with_pod_template(pod)
+            .build()
         )
         template = manifest["spec"]["template"]
         assert template["metadata"]["labels"] == {"app": "web"}
@@ -93,14 +100,21 @@ class TestPodTemplate:
     def test_falls_back_to_selector_labels_when_pod_has_none(self) -> None:
         pod = PodBuilder("web").with_container("app", "nginx")
         manifest = (
-            DeploymentBuilder("web").with_selector({"app": "web"}).with_pod_template(pod).build()
+            DeploymentBuilder("web")
+            .with_selector({"app": "web"})
+            .with_pod_template(pod)
+            .build()
         )
         assert manifest["spec"]["template"]["metadata"]["labels"] == {"app": "web"}
 
     def test_includes_pod_annotations(self) -> None:
-        pod = PodBuilder("web", annotations={"team": "core"}).with_container("app", "nginx")
+        pod = PodBuilder("web", annotations={"team": "core"}).with_container(
+            "app", "nginx"
+        )
         manifest = DeploymentBuilder("web").with_pod_template(pod).build()
-        assert manifest["spec"]["template"]["metadata"]["annotations"] == {"team": "core"}
+        assert manifest["spec"]["template"]["metadata"]["annotations"] == {
+            "team": "core"
+        }
 
     def test_without_selector_or_pod_labels_has_no_labels(self) -> None:
         pod = PodBuilder("web").with_container("app", "nginx")

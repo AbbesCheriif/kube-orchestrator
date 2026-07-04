@@ -21,13 +21,17 @@ class TestProbeBuilder:
         assert probe["httpGet"] == {"path": "/healthz", "port": 8080, "scheme": "HTTP"}
 
     def test_http_get_probe_with_host_and_headers(self) -> None:
-        probe = ProbeBuilder().http_get_probe(
-            "/healthz",
-            8080,
-            host="internal.local",
-            scheme="HTTPS",
-            http_headers=[{"name": "X-Check", "value": "1"}],
-        ).build()
+        probe = (
+            ProbeBuilder()
+            .http_get_probe(
+                "/healthz",
+                8080,
+                host="internal.local",
+                scheme="HTTPS",
+                http_headers=[{"name": "X-Check", "value": "1"}],
+            )
+            .build()
+        )
         assert probe["httpGet"]["host"] == "internal.local"
         assert probe["httpGet"]["scheme"] == "HTTPS"
         assert probe["httpGet"]["httpHeaders"] == [{"name": "X-Check", "value": "1"}]
@@ -58,14 +62,18 @@ class TestProbeBuilder:
         assert "terminationGracePeriodSeconds" not in probe
 
     def test_with_timing_custom_and_termination_grace(self) -> None:
-        probe = ProbeBuilder().with_timing(
-            initial_delay=5,
-            period=20,
-            timeout=3,
-            success_threshold=2,
-            failure_threshold=5,
-            termination_grace=30,
-        ).build()
+        probe = (
+            ProbeBuilder()
+            .with_timing(
+                initial_delay=5,
+                period=20,
+                timeout=3,
+                success_threshold=2,
+                failure_threshold=5,
+                termination_grace=30,
+            )
+            .build()
+        )
         assert probe["initialDelaySeconds"] == 5
         assert probe["terminationGracePeriodSeconds"] == 30
 

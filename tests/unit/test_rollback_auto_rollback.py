@@ -69,7 +69,9 @@ class TestTriggerRollback:
             auto_rollback.trigger_rollback("web", "default", "crash loop")
             rollback.assert_not_called()
 
-        assert auto_rollback.get_rollback_history("web", "default")[0]["success"] is True
+        assert (
+            auto_rollback.get_rollback_history("web", "default")[0]["success"] is True
+        )
 
     def test_read_failure_logs_failure_and_returns_early(
         self,
@@ -162,8 +164,8 @@ class TestRollbackToRevision:
     def test_reraises_on_list_failure(
         self, auto_rollback: AutoRollback, mock_kube_client: MagicMock
     ) -> None:
-        mock_kube_client.apps_v1.list_namespaced_replica_set.side_effect = (
-            RuntimeError("boom")
+        mock_kube_client.apps_v1.list_namespaced_replica_set.side_effect = RuntimeError(
+            "boom"
         )
         with pytest.raises(RuntimeError, match="boom"):
             auto_rollback.rollback_to_revision("web", "default", 2)

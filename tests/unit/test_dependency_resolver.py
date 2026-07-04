@@ -56,9 +56,7 @@ class TestWaitForNamespaceReady:
         core_api_no_namespaced_namespace.read_namespace.side_effect = RuntimeError(
             "boom"
         )
-        with patch(
-            "kube_orchestrator.manifest.dependency_resolver.time.sleep"
-        ):
+        with patch("kube_orchestrator.manifest.dependency_resolver.time.sleep"):
             assert resolver.wait_for_namespace_ready("team-a", timeout=0.05) is False
 
     def test_uses_default_timeout_when_not_given(
@@ -69,12 +67,14 @@ class TestWaitForNamespaceReady:
         ns = MagicMock()
         ns.status.phase = "Terminating"
         core_api_no_namespaced_namespace.read_namespace.return_value = ns
-        with patch(
-            "kube_orchestrator.manifest.dependency_resolver.time.monotonic",
-            side_effect=[0, 0, 999],
+        with (
+            patch(
+                "kube_orchestrator.manifest.dependency_resolver.time.monotonic",
+                side_effect=[0, 0, 999],
+            ),
+            patch("kube_orchestrator.manifest.dependency_resolver.time.sleep"),
         ):
-            with patch("kube_orchestrator.manifest.dependency_resolver.time.sleep"):
-                assert resolver.wait_for_namespace_ready("team-a") is False
+            assert resolver.wait_for_namespace_ready("team-a") is False
 
 
 @pytest.mark.unit
@@ -93,12 +93,10 @@ class TestWaitForCrdReady:
     def test_swallows_errors_and_times_out(
         self, resolver: DependencyResolver, mock_kube_client: MagicMock
     ) -> None:
-        mock_kube_client.api_extensions_v1.read_custom_resource_definition.side_effect = (
-            RuntimeError("boom")
+        mock_kube_client.api_extensions_v1.read_custom_resource_definition.side_effect = RuntimeError(
+            "boom"
         )
-        with patch(
-            "kube_orchestrator.manifest.dependency_resolver.time.sleep"
-        ):
+        with patch("kube_orchestrator.manifest.dependency_resolver.time.sleep"):
             assert (
                 resolver.wait_for_crd_ready("foos.example.com", timeout=0.05) is False
             )
@@ -119,7 +117,9 @@ class TestWaitForResourceReady:
             "kind": "CustomResourceDefinition",
             "metadata": {"name": "foos.example.com"},
         }
-        with patch.object(resolver, "wait_for_crd_ready", return_value=True) as mock_wait:
+        with patch.object(
+            resolver, "wait_for_crd_ready", return_value=True
+        ) as mock_wait:
             assert resolver.wait_for_resource_ready(manifest) is True
             mock_wait.assert_called_once_with("foos.example.com", None)
 
@@ -136,9 +136,7 @@ class TestWaitForResourceReady:
             "kind": "ConfigMap",
             "metadata": {"name": "cm", "namespace": "default"},
         }
-        with patch(
-            "kube_orchestrator.manifest.validator.route_by_kind"
-        ) as mock_route:
+        with patch("kube_orchestrator.manifest.validator.route_by_kind") as mock_route:
             manager_cls = MagicMock()
             manager_cls.return_value.get.return_value = MagicMock()
             mock_route.return_value = manager_cls
@@ -152,16 +150,10 @@ class TestWaitForResourceReady:
             "kind": "ConfigMap",
             "metadata": {"name": "cm", "namespace": "default"},
         }
-        with patch(
-            "kube_orchestrator.manifest.validator.route_by_kind"
-        ) as mock_route:
+        with patch("kube_orchestrator.manifest.validator.route_by_kind") as mock_route:
             manager_cls = MagicMock()
             manager_cls.return_value.get.side_effect = RuntimeError("boom")
             mock_route.return_value = manager_cls
 
-            with patch(
-                "kube_orchestrator.manifest.dependency_resolver.time.sleep"
-            ):
-                assert (
-                    resolver.wait_for_resource_ready(manifest, timeout=0.05) is False
-                )
+            with patch("kube_orchestrator.manifest.dependency_resolver.time.sleep"):
+                assert resolver.wait_for_resource_ready(manifest, timeout=0.05) is False
