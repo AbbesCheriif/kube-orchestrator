@@ -142,6 +142,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and silently fell back to `0.0.0`; `kube-orchestrator --version`
   inside the published `:1.0.0` image would have reported `0.0.0`.
   The real tag version is now passed in via a `VERSION` build-arg.
+- `--cov-fail-under=100` was set globally in `pytest.ini`/`pyproject.toml`
+  `addopts`, so it also applied to `pytest tests/integration/` in CI —
+  which only exercises a handful of workflows against a real cluster and
+  can never reach 100% — failing the `integration-tests` job regardless
+  of whether the tests themselves passed. The gate now lives only on the
+  `unit-tests` job's own command line.
+- `test_discovery_finds_installed_crd` reused the same CRD name as the
+  previous test in its class; CRD deletion is asynchronous (finalizers),
+  so recreating it immediately raced with the prior test's still-pending
+  deletion and produced an empty discovery result. It now uses its own
+  CRD name.
 
 [Unreleased]: https://github.com/AbbesCheriif/kube-orchestrator/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/AbbesCheriif/kube-orchestrator/releases/tag/v1.0.0
