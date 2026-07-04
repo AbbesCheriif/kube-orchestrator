@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -13,15 +12,25 @@ import yaml
 
 def load_file(path: str) -> list[dict[str, Any]]:
     """Load one or more Kubernetes manifests from a YAML/JSON file."""
-    file_path = Path(path)
-    content = file_path.read_text(encoding=detect_encoding(path))
-    return load_string(content)
+    from kube_orchestrator.core.exceptions import ManifestParseError
+
+    try:
+        file_path = Path(path)
+        content = file_path.read_text(encoding=detect_encoding(path))
+        return load_string(content)
+    except (FileNotFoundError, OSError) as exc:
+        raise ManifestParseError(file=path, line=0) from exc
 
 
 def load_string(content: str) -> list[dict[str, Any]]:
     """Parse a YAML string containing one or multiple documents."""
-    docs = list(yaml.safe_load_all(content))
-    return [d for d in docs if d is not None]
+    from kube_orchestrator.core.exceptions import ManifestParseError
+
+    try:
+        docs = list(yaml.safe_load_all(content))
+        return [d for d in docs if d is not None]
+    except yaml.YAMLError as exc:
+        raise ManifestParseError(file="<string>", line=0) from exc
 
 
 def load_url(url: str, headers: dict[str, str] | None = None) -> list[dict[str, Any]]:

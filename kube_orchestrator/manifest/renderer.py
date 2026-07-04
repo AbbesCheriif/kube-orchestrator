@@ -12,7 +12,6 @@ from typing import Any
 import yaml
 from jinja2 import Environment, StrictUndefined, Undefined
 
-
 # ------------------------------------------------------------------
 # Jinja2 filter/function helpers
 # ------------------------------------------------------------------
@@ -110,8 +109,15 @@ def render_file(path: str, values: dict[str, Any]) -> list[dict[str, Any]]:
 
 def render_string(content: str, values: dict[str, Any]) -> list[dict[str, Any]]:
     """Render a Jinja2 template string and parse the result as YAML."""
-    template = _ENV.from_string(content)
-    rendered = template.render(**values)
+    from jinja2 import UndefinedError
+
+    from kube_orchestrator.core.exceptions import ManifestRenderError
+
+    try:
+        template = _ENV.from_string(content)
+        rendered = template.render(**values)
+    except UndefinedError as exc:
+        raise ManifestRenderError(template=content, variable=str(exc)) from exc
     docs = list(yaml.safe_load_all(rendered))
     return [d for d in docs if d is not None]
 
@@ -121,7 +127,8 @@ def load_values_file(path: str) -> dict[str, Any]:
     file_path = Path(path)
     text = file_path.read_text(encoding="utf-8")
     if file_path.suffix in (".json",):
-        return json.loads(text)
+        loaded: dict[str, Any] = json.loads(text)
+        return loaded
     result = yaml.safe_load(text)
     return result if isinstance(result, dict) else {}
 
@@ -142,9 +149,7 @@ def inject_env_vars(values: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def override_values(
-    base: dict[str, Any], overrides: dict[str, Any]
-) -> dict[str, Any]:
+def override_values(base: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
     """Return a deep-merged copy of base with overrides applied on top."""
     result: dict[str, Any] = {}
     _deep_merge(result, base)

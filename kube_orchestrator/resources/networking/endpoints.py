@@ -39,8 +39,8 @@ class EndpointsManager(BaseResourceManager[V1Endpoints]):
         self,
         name: str,
         namespace: str,
-        subsets: list[dict],
-        labels: dict | None = None,
+        subsets: list[dict[str, Any]],
+        labels: dict[str, Any] | None = None,
     ) -> V1Endpoints:
         """Create an Endpoints object.
 
@@ -71,7 +71,7 @@ class EndpointsManager(BaseResourceManager[V1Endpoints]):
         self,
         name: str,
         namespace: str,
-        subsets: list[dict],
+        subsets: list[dict[str, Any]],
     ) -> V1Endpoints:
         """Replace the subsets of an existing Endpoints object."""
         current = self.get_endpoints(name, namespace)
@@ -105,7 +105,7 @@ class EndpointsManager(BaseResourceManager[V1Endpoints]):
         protocol: str = "TCP",
         hostname: str | None = None,
         node_name: str | None = None,
-        target_ref: dict | None = None,
+        target_ref: dict[str, Any] | None = None,
     ) -> V1Endpoints:
         """Add a ready address + port to the first subset (or create one)."""
         current = self.get_endpoints(name, namespace)
@@ -184,7 +184,7 @@ class EndpointsManager(BaseResourceManager[V1Endpoints]):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _build_address(addr: dict) -> dict[str, Any]:
+    def _build_address(addr: dict[str, Any]) -> dict[str, Any]:
         entry: dict[str, Any] = {"ip": addr["ip"]}
         if "hostname" in addr:
             entry["hostname"] = addr["hostname"]
@@ -195,7 +195,7 @@ class EndpointsManager(BaseResourceManager[V1Endpoints]):
         return entry
 
     @staticmethod
-    def _build_port(p: dict) -> dict[str, Any]:
+    def _build_port(p: dict[str, Any]) -> dict[str, Any]:
         entry: dict[str, Any] = {"port": p["port"]}
         if "name" in p:
             entry["name"] = p["name"]
@@ -205,7 +205,7 @@ class EndpointsManager(BaseResourceManager[V1Endpoints]):
             entry["appProtocol"] = p["appProtocol"]
         return entry
 
-    def _build_subset(self, subset: dict) -> dict[str, Any]:
+    def _build_subset(self, subset: dict[str, Any]) -> dict[str, Any]:
         entry: dict[str, Any] = {}
         if "addresses" in subset:
             entry["addresses"] = [self._build_address(a) for a in subset["addresses"]]

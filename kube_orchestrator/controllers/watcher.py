@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import threading
 import uuid
-from typing import Callable
+from collections.abc import Callable
+from typing import Any
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.logging import get_logger
@@ -31,7 +32,7 @@ class ResourceWatcher:
         namespace: str,
         label_selector: str | None = None,
         timeout_seconds: int = 0,
-        callback: Callable[[str, dict], None] | None = None,
+        callback: Callable[[str, dict[str, Any]], None] | None = None,
     ) -> None:
         self._start_watch(
             list_func=self._client.core_v1.list_namespaced_pod,
@@ -43,7 +44,7 @@ class ResourceWatcher:
     def watch_deployments(
         self,
         namespace: str,
-        callback: Callable[[str, dict], None] | None = None,
+        callback: Callable[[str, dict[str, Any]], None] | None = None,
     ) -> None:
         self._start_watch(
             list_func=self._client.apps_v1.list_namespaced_deployment,
@@ -54,7 +55,7 @@ class ResourceWatcher:
 
     def watch_nodes(
         self,
-        callback: Callable[[str, dict], None] | None = None,
+        callback: Callable[[str, dict[str, Any]], None] | None = None,
     ) -> None:
         self._start_watch(
             list_func=self._client.core_v1.list_node,
@@ -66,7 +67,7 @@ class ResourceWatcher:
     def watch_events(
         self,
         namespace: str,
-        callback: Callable[[str, dict], None] | None = None,
+        callback: Callable[[str, dict[str, Any]], None] | None = None,
     ) -> None:
         self._start_watch(
             list_func=self._client.core_v1.list_namespaced_event,
@@ -79,11 +80,17 @@ class ResourceWatcher:
         self,
         resource_type: str,
         namespace: str | None = None,
-        callback: Callable[[str, dict], None] | None = None,
+        callback: Callable[[str, dict[str, Any]], None] | None = None,
     ) -> None:
         _resource_map = {
-            "pods": (self._client.core_v1.list_namespaced_pod, self._client.core_v1.list_pod_for_all_namespaces),
-            "deployments": (self._client.apps_v1.list_namespaced_deployment, self._client.apps_v1.list_deployment_for_all_namespaces),
+            "pods": (
+                self._client.core_v1.list_namespaced_pod,
+                self._client.core_v1.list_pod_for_all_namespaces,
+            ),
+            "deployments": (
+                self._client.apps_v1.list_namespaced_deployment,
+                self._client.apps_v1.list_deployment_for_all_namespaces,
+            ),
             "nodes": (None, self._client.core_v1.list_node),
         }
         resource_type_lower = resource_type.lower()
@@ -99,7 +106,7 @@ class ResourceWatcher:
             )
         else:
             self._start_watch(
-                list_func=cluster_func,
+                list_func=cluster_func,  # type: ignore[arg-type]  # bound method signature vs Callable[..., Any]
                 kwargs={},
                 timeout_seconds=0,
                 callback=callback,
@@ -111,12 +118,12 @@ class ResourceWatcher:
 
     def _start_watch(
         self,
-        list_func: Callable,
-        kwargs: dict,
+        list_func: Callable[..., Any],
+        kwargs: dict[str, Any],
         timeout_seconds: int,
-        callback: Callable[[str, dict], None] | None,
+        callback: Callable[[str, dict[str, Any]], None] | None,
     ) -> None:
-        from kubernetes import watch as k8s_watch
+        from kubernetes import watch as k8s_watch  # type: ignore[attr-defined]
 
         stop_event = self._stop_event
 
@@ -149,10 +156,10 @@ class ResourceWatcher:
 
 class HooksRegistry:
     def __init__(self) -> None:
-        self._hooks: dict[str, dict[str, Callable]] = {}
+        self._hooks: dict[str, dict[str, Callable[..., Any]]] = {}
         self._logger = get_logger(__name__)
 
-    def register(self, event_type: str, handler: Callable) -> str:
+    def register(self, event_type: str, handler: Callable[..., Any]) -> str:
         hook_id = str(uuid.uuid4())
         self._hooks.setdefault(event_type, {})[hook_id] = handler
         self._logger.info("hook_registered", event_type=event_type, hook_id=hook_id)
@@ -162,10 +169,12 @@ class HooksRegistry:
         for event_type, hooks in self._hooks.items():
             if hook_id in hooks:
                 del hooks[hook_id]
-                self._logger.info("hook_unregistered", event_type=event_type, hook_id=hook_id)
+                self._logger.info(
+                    "hook_unregistered", event_type=event_type, hook_id=hook_id
+                )
                 return
 
-    def trigger(self, event_type: str, resource: dict) -> None:
+    def trigger(self, event_type: str, resource: dict[str, Any]) -> None:
         for hook_id, handler in list(self._hooks.get(event_type, {}).items()):
             try:
                 handler(resource)
@@ -177,8 +186,7 @@ class HooksRegistry:
                     error=str(exc),
                 )
 
-    def list_hooks(self) -> dict:
+    def list_hooks(self) -> dict[str, Any]:
         return {
-            event_type: list(hooks.keys())
-            for event_type, hooks in self._hooks.items()
+            event_type: list(hooks.keys()) for event_type, hooks in self._hooks.items()
         }

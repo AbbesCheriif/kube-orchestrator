@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
-from kubernetes import client, watch
-from kubernetes.client.rest import ApiException
+from kubernetes import watch  # type: ignore[attr-defined]
 
 from kube_orchestrator.core.client import KubeClient
-from kube_orchestrator.core.exceptions import parse_api_exception
 
 
 class CRDWatcher:
@@ -47,11 +46,7 @@ class CRDWatcher:
             obj = raw_event.get("object")
             event_dict: dict[str, Any] = {
                 "type": event_type,
-                "name": (
-                    obj.metadata.name
-                    if obj and obj.metadata
-                    else None
-                ),
+                "name": (obj.metadata.name if obj and obj.metadata else None),
                 "object": obj.to_dict() if hasattr(obj, "to_dict") else obj,
             }
             if callback:

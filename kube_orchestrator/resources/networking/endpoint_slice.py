@@ -30,6 +30,9 @@ class EndpointSliceManager(BaseResourceManager[Any]):
     def _kind(self) -> str:
         return "EndpointSlice"
 
+    def _resource_name(self) -> str:
+        return "endpoint_slice"
+
     def _api_version(self) -> str:
         return "discovery.k8s.io/v1"
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from kubernetes import client
-from kubernetes.client.rest import ApiException
+from kubernetes.client.exceptions import ApiException
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.exceptions import parse_api_exception
@@ -18,7 +18,7 @@ class PriorityClassManager(BaseResourceManager[client.V1PriorityClass]):
 
     def __init__(
         self,
-        kube_client: "KubeClient | None" = None,
+        kube_client: KubeClient | None = None,
         default_namespace: str = "default",
         dry_run: bool = False,
     ) -> None:
@@ -29,6 +29,9 @@ class PriorityClassManager(BaseResourceManager[client.V1PriorityClass]):
 
     def _kind(self) -> str:
         return "PriorityClass"
+
+    def _resource_name(self) -> str:
+        return "priority_class"
 
     def _api_version(self) -> str:
         return "scheduling.k8s.io/v1"
@@ -66,7 +69,7 @@ class PriorityClassManager(BaseResourceManager[client.V1PriorityClass]):
 
         try:
             return self.client.scheduling_v1.create_priority_class(
-                body=manifest,
+                body=manifest,  # type: ignore[arg-type]  # dict body accepted at runtime
                 dry_run=self.dry_run,
             )
         except ApiException as exc:
@@ -135,8 +138,8 @@ class PriorityClassManager(BaseResourceManager[client.V1PriorityClass]):
     # ------------------------------------------------------------------
 
     def assign_to_pod_spec(
-        self, pod_spec: dict, priority_class_name: str
-    ) -> dict:
+        self, pod_spec: dict[str, Any], priority_class_name: str
+    ) -> dict[str, Any]:
         """Inject priorityClassName into a pod spec dict."""
         pod_spec["priorityClassName"] = priority_class_name
         return pod_spec
@@ -147,7 +150,7 @@ class PriorityClassManager(BaseResourceManager[client.V1PriorityClass]):
 
     def get_workloads_using(
         self, name: str, namespace: str | None = None
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Return all pods in namespace that use this PriorityClass."""
         ns = namespace or self.default_namespace
         try:
@@ -155,15 +158,14 @@ class PriorityClassManager(BaseResourceManager[client.V1PriorityClass]):
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
 
-        matching: list[dict] = []
+        matching: list[dict[str, Any]] = []
         for pod in result.items:
-            if (
-                pod.spec
-                and pod.spec.priority_class_name == name
-            ):
-                matching.append({
-                    "kind": "Pod",
-                    "name": pod.metadata.name if pod.metadata else "",
-                    "namespace": pod.metadata.namespace if pod.metadata else ns,
-                })
+            if pod.spec and pod.spec.priority_class_name == name:
+                matching.append(
+                    {
+                        "kind": "Pod",
+                        "name": pod.metadata.name if pod.metadata else "",
+                        "namespace": pod.metadata.namespace if pod.metadata else ns,
+                    }
+                )
         return matching

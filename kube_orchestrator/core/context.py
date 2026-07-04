@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Iterator
 
 
 @dataclass
@@ -42,13 +42,15 @@ def use_namespace(ns: str) -> Iterator[ExecutionContext]:
 def use_context(ctx: str) -> Iterator[ExecutionContext]:
     """Temporarily switch the Kubernetes context within the block."""
     global _active
-    from kube_orchestrator.core.client import KubeClient  # avoid circular at module level
+    from kube_orchestrator.core.client import (
+        KubeClient,  # avoid circular at module level
+    )
 
     previous_ctx = _active.context
     _active.context = ctx
 
     kube_client = KubeClient.get_instance()
-    kube_client._api_client.configuration  # touch to ensure initialised
+    _ = kube_client._api_client.configuration  # touch to ensure initialised
 
     # Re-load config for the requested context
     from kube_orchestrator.core.config import KubeConfig

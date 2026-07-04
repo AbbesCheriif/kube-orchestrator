@@ -33,6 +33,8 @@ class SnapshotStore:
         deploy = self._client.apps_v1.read_namespaced_deployment(
             deployment_name, namespace
         )
+        if deploy.metadata is None or deploy.spec is None:
+            raise ValueError(f"Deployment '{deployment_name}' has no metadata/spec")
         revision = int(
             (deploy.metadata.annotations or {}).get(
                 "deployment.kubernetes.io/revision", "0"
@@ -49,8 +51,12 @@ class SnapshotStore:
             },
             "spec": {
                 "replicas": deploy.spec.replicas,
-                "selector": deploy.spec.selector.to_dict() if deploy.spec.selector else {},
-                "template": deploy.spec.template.to_dict() if deploy.spec.template else {},
+                "selector": (
+                    dict(deploy.spec.selector.to_dict()) if deploy.spec.selector else {}
+                ),
+                "template": (
+                    dict(deploy.spec.template.to_dict()) if deploy.spec.template else {}
+                ),
             },
         }
         snap = DeploymentSnapshot(
@@ -63,10 +69,14 @@ class SnapshotStore:
         )
         key = self._key(deployment_name, namespace)
         self._store.setdefault(key, []).append(snap)
-        self._logger.info("snapshot_taken", deployment=deployment_name, revision=revision)
+        self._logger.info(
+            "snapshot_taken", deployment=deployment_name, revision=revision
+        )
         return snap
 
-    def list_snapshots(self, deployment_name: str, namespace: str) -> list[DeploymentSnapshot]:
+    def list_snapshots(
+        self, deployment_name: str, namespace: str
+    ) -> list[DeploymentSnapshot]:
         return list(self._store.get(self._key(deployment_name, namespace), []))
 
     def get_snapshot(
@@ -77,7 +87,9 @@ class SnapshotStore:
                 return snap
         return None
 
-    def delete_snapshot(self, deployment_name: str, namespace: str, revision: int) -> None:
+    def delete_snapshot(
+        self, deployment_name: str, namespace: str, revision: int
+    ) -> None:
         key = self._key(deployment_name, namespace)
         self._store[key] = [
             s for s in self._store.get(key, []) if s.revision != revision
@@ -85,13 +97,14 @@ class SnapshotStore:
 
     def compare_snapshots(
         self, snap_a: DeploymentSnapshot, snap_b: DeploymentSnapshot
-    ) -> dict:
+    ) -> dict[str, Any]:
         return {
             "from_revision": snap_a.revision,
             "to_revision": snap_b.revision,
             "from_timestamp": snap_a.timestamp.isoformat(),
             "to_timestamp": snap_b.timestamp.isoformat(),
-            "image_changed": snap_a.metadata.get("image") != snap_b.metadata.get("image"),
+            "image_changed": snap_a.metadata.get("image")
+            != snap_b.metadata.get("image"),
             "from_image": snap_a.metadata.get("image"),
             "to_image": snap_b.metadata.get("image"),
         }
@@ -105,7 +118,11 @@ class SnapshotStore:
             "manifest": snap.manifest,
             "metadata": snap.metadata,
         }
-        os.makedirs(os.path.dirname(path), exist_ok=True) if os.path.dirname(path) else None
+        (
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            if os.path.dirname(path)
+            else None
+        )
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(data, fh, indent=2)
         self._logger.info("snapshot_exported", path=path)

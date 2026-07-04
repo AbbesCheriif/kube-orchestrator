@@ -1,17 +1,27 @@
 from __future__ import annotations
 
-from kubernetes.client import V1LocalObjectReference, V1ObjectMeta, V1ServiceAccount
+from typing import Any
+
+from kubernetes.client import (
+    CoreV1Api,
+    V1LocalObjectReference,
+    V1ObjectMeta,
+    V1ServiceAccount,
+)
 
 from kube_orchestrator.resources.base import BaseResourceManager
 
 
 class ServiceAccountManager(BaseResourceManager[V1ServiceAccount]):
 
-    def _get_api(self):
+    def _get_api(self) -> CoreV1Api:
         return self.client.core_v1
 
     def _kind(self) -> str:
         return "ServiceAccount"
+
+    def _resource_name(self) -> str:
+        return "service_account"
 
     def _api_version(self) -> str:
         return "v1"
@@ -22,8 +32,8 @@ class ServiceAccountManager(BaseResourceManager[V1ServiceAccount]):
         namespace: str,
         automount_token: bool = True,
         image_pull_secrets: list[str] | None = None,
-        labels: dict | None = None,
-        annotations: dict | None = None,
+        labels: dict[str, Any] | None = None,
+        annotations: dict[str, Any] | None = None,
     ) -> V1ServiceAccount:
         body = V1ServiceAccount(
             api_version="v1",
@@ -55,9 +65,13 @@ class ServiceAccountManager(BaseResourceManager[V1ServiceAccount]):
         namespace: str,
         label_selector: str | None = None,
     ) -> list[V1ServiceAccount]:
-        return self._get_api().list_namespaced_service_account(
-            namespace=namespace, label_selector=label_selector
-        ).items
+        return (
+            self._get_api()
+            .list_namespaced_service_account(
+                namespace=namespace, label_selector=label_selector
+            )
+            .items
+        )
 
     def delete_service_account(self, name: str, namespace: str) -> None:
         self._get_api().delete_namespaced_service_account(
@@ -70,9 +84,9 @@ class ServiceAccountManager(BaseResourceManager[V1ServiceAccount]):
         namespace: str,
         expiration_seconds: int | None = None,
         audiences: list[str] | None = None,
-        bound_object_ref: dict | None = None,
+        bound_object_ref: dict[str, Any] | None = None,
     ) -> str:
-        body: dict = {"spec": {}}
+        body: dict[str, Any] = {"spec": {}}
         if expiration_seconds:
             body["spec"]["expirationSeconds"] = expiration_seconds
         if audiences:
@@ -80,9 +94,11 @@ class ServiceAccountManager(BaseResourceManager[V1ServiceAccount]):
         if bound_object_ref:
             body["spec"]["boundObjectRef"] = bound_object_ref
         resp = self._get_api().create_namespaced_service_account_token(
-            name=name, namespace=namespace, body=body
+            name=name,
+            namespace=namespace,
+            body=body,  # type: ignore[arg-type]  # dict body accepted at runtime
         )
-        return resp.status.token
+        return resp.status.token if resp.status else ""
 
     def add_image_pull_secret(
         self, name: str, namespace: str, secret_name: str
@@ -114,6 +130,6 @@ class ServiceAccountManager(BaseResourceManager[V1ServiceAccount]):
             name=name, namespace=namespace, body=sa, dry_run=self.dry_run
         )
 
-    def get_secrets(self, name: str, namespace: str) -> list:
+    def get_secrets(self, name: str, namespace: str) -> list[Any]:
         sa = self.get_service_account(name, namespace)
         return sa.secrets or []

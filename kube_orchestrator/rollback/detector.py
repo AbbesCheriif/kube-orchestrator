@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import threading
-from typing import Callable
+from collections.abc import Callable
+from typing import Any
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.logging import get_logger
@@ -17,14 +18,21 @@ class RolloutDetector:
             deploy = self._client.apps_v1.read_namespaced_deployment(
                 deployment_name, namespace
             )
-            for cond in (deploy.status.conditions or []):
-                if cond.type == "Progressing" and cond.reason == "ProgressDeadlineExceeded":
+            for cond in (deploy.status.conditions if deploy.status else None) or []:
+                if (
+                    cond.type == "Progressing"
+                    and cond.reason == "ProgressDeadlineExceeded"
+                ):
                     return True
-            desired = deploy.spec.replicas or 1
-            updated = deploy.status.updated_replicas or 0
-            available = deploy.status.available_replicas or 0
+            desired = (deploy.spec.replicas if deploy.spec else None) or 1
+            updated = (deploy.status.updated_replicas if deploy.status else None) or 0
+            available = (
+                deploy.status.available_replicas if deploy.status else None
+            ) or 0
             if updated < desired or available < desired:
-                unavailable = deploy.status.unavailable_replicas or 0
+                unavailable = (
+                    deploy.status.unavailable_replicas if deploy.status else None
+                ) or 0
                 if unavailable > 0:
                     return True
         except Exception as exc:
@@ -40,7 +48,7 @@ class RolloutDetector:
             deploy = self._client.apps_v1.read_namespaced_deployment(
                 deployment_name, namespace
             )
-            for cond in (deploy.status.conditions or []):
+            for cond in (deploy.status.conditions if deploy.status else None) or []:
                 if cond.type == "Progressing" and cond.status == "False":
                     return cond.message
                 if cond.type == "Available" and cond.status == "False":
@@ -60,11 +68,16 @@ class RolloutDetector:
             deploy = self._client.apps_v1.read_namespaced_deployment(
                 deployment_name, namespace
             )
-            for cond in (deploy.status.conditions or []):
-                if cond.type == "Progressing" and cond.reason == "ProgressDeadlineExceeded":
+            for cond in (deploy.status.conditions if deploy.status else None) or []:
+                if (
+                    cond.type == "Progressing"
+                    and cond.reason == "ProgressDeadlineExceeded"
+                ):
                     return True
-            observed = deploy.status.observed_generation or 0
-            generation = deploy.metadata.generation or 0
+            observed = (
+                deploy.status.observed_generation if deploy.status else None
+            ) or 0
+            generation = (deploy.metadata.generation if deploy.metadata else None) or 0
             if observed < generation:
                 return True
         except Exception as exc:
@@ -75,23 +88,23 @@ class RolloutDetector:
             )
         return False
 
-    def check_pod_errors(self, deployment_name: str, namespace: str) -> list[dict]:
-        errors: list[dict] = []
+    def check_pod_errors(
+        self, deployment_name: str, namespace: str
+    ) -> list[dict[str, Any]]:
+        errors: list[dict[str, Any]] = []
         try:
             deploy = self._client.apps_v1.read_namespaced_deployment(
                 deployment_name, namespace
             )
-            selector = deploy.spec.selector
+            selector = deploy.spec.selector if deploy.spec else None
             if not selector or not selector.match_labels:
                 return errors
-            label_str = ",".join(
-                f"{k}={v}" for k, v in selector.match_labels.items()
-            )
+            label_str = ",".join(f"{k}={v}" for k, v in selector.match_labels.items())
             pods = self._client.core_v1.list_namespaced_pod(
                 namespace, label_selector=label_str
             )
             for pod in pods.items:
-                for cs in (pod.status.container_statuses or []):
+                for cs in (pod.status.container_statuses if pod.status else None) or []:
                     if cs.state and cs.state.waiting:
                         waiting = cs.state.waiting
                         if waiting.reason in (
@@ -102,7 +115,9 @@ class RolloutDetector:
                         ):
                             errors.append(
                                 {
-                                    "pod": pod.metadata.name,
+                                    "pod": (
+                                        pod.metadata.name if pod.metadata else None
+                                    ),
                                     "container": cs.name,
                                     "reason": waiting.reason,
                                     "message": waiting.message or "",
@@ -122,7 +137,7 @@ class RolloutDetector:
         namespace: str,
         callback: Callable[[str, str], None],
     ) -> None:
-        from kubernetes import watch as k8s_watch
+        from kubernetes import watch as k8s_watch  # type: ignore[attr-defined]
 
         w = k8s_watch.Watch()
 
@@ -136,7 +151,7 @@ class RolloutDetector:
                     deploy = event["object"]
                     event_type: str = event["type"]
                     if event_type in ("ADDED", "MODIFIED"):
-                        for cond in (deploy.status.conditions or []):
+                        for cond in deploy.status.conditions or []:
                             if (
                                 cond.type == "Progressing"
                                 and cond.reason == "ProgressDeadlineExceeded"

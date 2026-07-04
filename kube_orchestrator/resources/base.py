@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Generic, TypeVar
+from collections.abc import Callable, Sequence
+from typing import Any, Generic, TypeVar, cast
 
-from kubernetes import client, watch
-from kubernetes.client.rest import ApiException
-from typing import Any as BoundLogger
+from kubernetes import (  # type: ignore[attr-defined]  # kubernetes-stubs has no watch submodule stub
+    client,
+    watch,
+)
+from kubernetes.client.exceptions import ApiException
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.exceptions import (
@@ -19,6 +22,7 @@ from kube_orchestrator.core.exceptions import (
 from kube_orchestrator.core.logging import get_logger
 
 T = TypeVar("T")
+BoundLogger = Any
 
 
 class BaseResourceManager(ABC, Generic[T]):
@@ -70,8 +74,8 @@ class BaseResourceManager(ABC, Generic[T]):
             api = self._get_api()
             read_fn = getattr(api, f"read_namespaced_{self._resource_name()}", None)
             if read_fn is not None:
-                return read_fn(name=name, namespace=ns)
-            return getattr(api, f"read_{self._resource_name()}")(name=name)
+                return cast("T", read_fn(name=name, namespace=ns))
+            return cast("T", getattr(api, f"read_{self._resource_name()}")(name=name))
         except ApiException as exc:
             if exc.status == 404:
                 raise ResourceNotFoundError(self._kind(), name, ns) from exc
@@ -103,11 +107,11 @@ class BaseResourceManager(ABC, Generic[T]):
                 result = list_fn(namespace=ns, **kwargs)
             else:
                 result = getattr(api, f"list_{self._resource_name()}")(**kwargs)
-            return result.items
+            return cast("list[T]", result.items)
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
 
-    def create(self, manifest: dict, namespace: str | None = None) -> T:
+    def create(self, manifest: dict[str, Any], namespace: str | None = None) -> T:
         """Create a resource from a manifest dict."""
         ns = namespace or self.default_namespace
         kwargs: dict[str, Any] = {"body": manifest}
@@ -117,8 +121,8 @@ class BaseResourceManager(ABC, Generic[T]):
             api = self._get_api()
             create_fn = getattr(api, f"create_namespaced_{self._resource_name()}", None)
             if create_fn is not None:
-                return create_fn(namespace=ns, **kwargs)
-            return getattr(api, f"create_{self._resource_name()}")(**kwargs)
+                return cast("T", create_fn(namespace=ns, **kwargs))
+            return cast("T", getattr(api, f"create_{self._resource_name()}")(**kwargs))
         except ApiException as exc:
             if exc.status == 409:
                 raise ResourceAlreadyExistsError(
@@ -128,7 +132,9 @@ class BaseResourceManager(ABC, Generic[T]):
                 ) from exc
             raise parse_api_exception(exc) from exc
 
-    def update(self, name: str, manifest: dict, namespace: str | None = None) -> T:
+    def update(
+        self, name: str, manifest: dict[str, Any], namespace: str | None = None
+    ) -> T:
         """Replace an existing resource (PUT)."""
         ns = namespace or self.default_namespace
         kwargs: dict[str, Any] = {"name": name, "body": manifest}
@@ -136,10 +142,12 @@ class BaseResourceManager(ABC, Generic[T]):
             kwargs["dry_run"] = self.dry_run
         try:
             api = self._get_api()
-            replace_fn = getattr(api, f"replace_namespaced_{self._resource_name()}", None)
+            replace_fn = getattr(
+                api, f"replace_namespaced_{self._resource_name()}", None
+            )
             if replace_fn is not None:
-                return replace_fn(namespace=ns, **kwargs)
-            return getattr(api, f"replace_{self._resource_name()}")(**kwargs)
+                return cast("T", replace_fn(namespace=ns, **kwargs))
+            return cast("T", getattr(api, f"replace_{self._resource_name()}")(**kwargs))
         except ApiException as exc:
             if exc.status == 404:
                 raise ResourceNotFoundError(self._kind(), name, ns) from exc
@@ -148,7 +156,7 @@ class BaseResourceManager(ABC, Generic[T]):
     def patch(
         self,
         name: str,
-        patch: dict,
+        patch: dict[str, Any],
         namespace: str | None = None,
         patch_type: str = "strategic",
     ) -> T:
@@ -164,12 +172,12 @@ class BaseResourceManager(ABC, Generic[T]):
             api = self._get_api()
             patch_fn = getattr(api, f"patch_namespaced_{self._resource_name()}", None)
             if patch_fn is not None:
-                return patch_fn(namespace=ns, **kwargs)
-            return getattr(api, f"patch_{self._resource_name()}")(**kwargs)
+                return cast("T", patch_fn(namespace=ns, **kwargs))
+            return cast("T", getattr(api, f"patch_{self._resource_name()}")(**kwargs))
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
 
-    def apply(self, manifest: dict, namespace: str | None = None) -> T:
+    def apply(self, manifest: dict[str, Any], namespace: str | None = None) -> T:
         """Create the resource if absent, otherwise replace it."""
         name: str = manifest.get("metadata", {}).get("name", "")
         if self.exists(name, namespace):
@@ -277,7 +285,7 @@ class BaseResourceManager(ABC, Generic[T]):
             time.sleep(2)
         return False
 
-    def get_events(self, name: str, namespace: str | None = None) -> list:
+    def get_events(self, name: str, namespace: str | None = None) -> Sequence[Any]:
         """Return core events related to this resource."""
         ns = namespace or self.default_namespace
         try:

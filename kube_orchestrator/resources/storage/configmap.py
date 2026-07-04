@@ -1,19 +1,24 @@
 from __future__ import annotations
 
+import base64
 import os
+from typing import Any
 
-from kubernetes.client import V1ConfigMap, V1ObjectMeta
+from kubernetes.client import CoreV1Api, V1ConfigMap, V1ObjectMeta
 
 from kube_orchestrator.resources.base import BaseResourceManager
 
 
 class ConfigMapManager(BaseResourceManager[V1ConfigMap]):
 
-    def _get_api(self):
+    def _get_api(self) -> CoreV1Api:
         return self.client.core_v1
 
     def _kind(self) -> str:
         return "ConfigMap"
+
+    def _resource_name(self) -> str:
+        return "config_map"
 
     def _api_version(self) -> str:
         return "v1"
@@ -25,8 +30,8 @@ class ConfigMapManager(BaseResourceManager[V1ConfigMap]):
         data: dict[str, str] | None = None,
         binary_data: dict[str, bytes] | None = None,
         immutable: bool = False,
-        labels: dict | None = None,
-        annotations: dict | None = None,
+        labels: dict[str, Any] | None = None,
+        annotations: dict[str, Any] | None = None,
     ) -> V1ConfigMap:
         body = V1ConfigMap(
             api_version="v1",
@@ -38,7 +43,11 @@ class ConfigMapManager(BaseResourceManager[V1ConfigMap]):
                 annotations=annotations,
             ),
             data=data,
-            binary_data=binary_data,
+            binary_data=(
+                {k: base64.b64encode(v).decode("ascii") for k, v in binary_data.items()}
+                if binary_data
+                else None
+            ),
             immutable=immutable if immutable else None,
         )
         return self._get_api().create_namespaced_config_map(
@@ -77,23 +86,29 @@ class ConfigMapManager(BaseResourceManager[V1ConfigMap]):
         return self.create_configmap(name=name, namespace=namespace, data=data)
 
     def get_configmap(self, name: str, namespace: str) -> V1ConfigMap:
-        return self._get_api().read_namespaced_config_map(name=name, namespace=namespace)
+        return self._get_api().read_namespaced_config_map(
+            name=name, namespace=namespace
+        )
 
     def list_configmaps(
         self,
         namespace: str,
         label_selector: str | None = None,
     ) -> list[V1ConfigMap]:
-        return self._get_api().list_namespaced_config_map(
-            namespace=namespace, label_selector=label_selector
-        ).items
+        return (
+            self._get_api()
+            .list_namespaced_config_map(
+                namespace=namespace, label_selector=label_selector
+            )
+            .items
+        )
 
     def update_configmap(
         self,
         name: str,
         namespace: str,
-        data: dict,
-        binary_data: dict | None = None,
+        data: dict[str, Any],
+        binary_data: dict[str, Any] | None = None,
     ) -> V1ConfigMap:
         cm = self.get_configmap(name, namespace)
         cm.data = data
@@ -138,11 +153,11 @@ class ConfigMapManager(BaseResourceManager[V1ConfigMap]):
     def build_volume_spec(
         self,
         name: str,
-        items: list[dict] | None = None,
+        items: list[dict[str, Any]] | None = None,
         default_mode: int | None = None,
         optional: bool = False,
-    ) -> dict:
-        spec: dict = {"configMap": {"name": name, "optional": optional}}
+    ) -> dict[str, Any]:
+        spec: dict[str, Any] = {"configMap": {"name": name, "optional": optional}}
         if items:
             spec["configMap"]["items"] = items
         if default_mode is not None:
@@ -154,8 +169,8 @@ class ConfigMapManager(BaseResourceManager[V1ConfigMap]):
         name: str,
         prefix: str | None = None,
         optional: bool = False,
-    ) -> dict:
-        spec: dict = {"configMapRef": {"name": name, "optional": optional}}
+    ) -> dict[str, Any]:
+        spec: dict[str, Any] = {"configMapRef": {"name": name, "optional": optional}}
         if prefix:
             spec["prefix"] = prefix
         return spec
@@ -165,7 +180,7 @@ class ConfigMapManager(BaseResourceManager[V1ConfigMap]):
         configmap_name: str,
         key: str,
         optional: bool = False,
-    ) -> dict:
+    ) -> dict[str, Any]:
         return {
             "valueFrom": {
                 "configMapKeyRef": {

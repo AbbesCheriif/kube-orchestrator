@@ -15,11 +15,7 @@ class NodeAffinityBuilder:
         values: list[str],
     ) -> NodeAffinityBuilder:
         self._required.append(
-            {
-                "matchExpressions": [
-                    {"key": key, "operator": operator, "values": values}
-                ]
-            }
+            {"matchExpressions": [{"key": key, "operator": operator, "values": values}]}
         )
         return self
 
@@ -49,9 +45,9 @@ class NodeAffinityBuilder:
                 "nodeSelectorTerms": self._required
             }
         if self._preferred:
-            affinity[
-                "preferredDuringSchedulingIgnoredDuringExecution"
-            ] = self._preferred
+            affinity["preferredDuringSchedulingIgnoredDuringExecution"] = (
+                self._preferred
+            )
         return affinity
 
 
@@ -102,9 +98,9 @@ class PodAffinityBuilder:
         if self._required:
             affinity["requiredDuringSchedulingIgnoredDuringExecution"] = self._required
         if self._preferred:
-            affinity[
-                "preferredDuringSchedulingIgnoredDuringExecution"
-            ] = self._preferred
+            affinity["preferredDuringSchedulingIgnoredDuringExecution"] = (
+                self._preferred
+            )
         return affinity
 
 

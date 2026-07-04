@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Callable
-from contextlib import contextmanager
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
-from typing import Any, Iterator
+from typing import Any
 
 from kubernetes.client.exceptions import ApiException
 
@@ -24,7 +24,9 @@ class RetryConfig:
     )
 
 
-def with_retry(func: Callable[..., Any], config: RetryConfig | None = None) -> Callable[..., Any]:
+def with_retry(
+    func: Callable[..., Any], config: RetryConfig | None = None
+) -> Callable[..., Any]:
     """Wrap *func* so it is retried according to *config* on transient errors."""
     cfg = config or RetryConfig()
 
@@ -35,13 +37,20 @@ def with_retry(func: Callable[..., Any], config: RetryConfig | None = None) -> C
                 return func(*args, **kwargs)
             except cfg.retry_on_exceptions as exc:
                 # Do not retry on 4xx client errors (except 429)
-                if isinstance(exc, ApiException) and exc.status not in (429, 500, 502, 503, 504):
+                if isinstance(exc, ApiException) and exc.status not in (
+                    429,
+                    500,
+                    502,
+                    503,
+                    504,
+                ):
                     raise
                 last_exc = exc
                 if attempt == cfg.max_attempts:
                     break
                 delay = min(
-                    cfg.wait_fixed + cfg.wait_exponential_multiplier * (2 ** (attempt - 1)),
+                    cfg.wait_fixed
+                    + cfg.wait_exponential_multiplier * (2 ** (attempt - 1)),
                     cfg.wait_exponential_max,
                 )
                 time.sleep(delay)
@@ -88,8 +97,6 @@ class RateLimitHandler:
         """Extract Retry-After header (or fall back to 5 s) and sleep."""
         retry_after = 5
         if response.headers:
-            try:
+            with suppress(ValueError, TypeError):
                 retry_after = int(response.headers.get("Retry-After", 5))
-            except (ValueError, TypeError):
-                pass
         time.sleep(retry_after)

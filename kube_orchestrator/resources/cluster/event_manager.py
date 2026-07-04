@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
-from typing import Any, Callable
+from collections.abc import Callable
+from datetime import datetime, timedelta, timezone
+from typing import Any
 
-from kubernetes import client, watch
-from kubernetes.client.rest import ApiException
+from kubernetes import (  # type: ignore[attr-defined]  # kubernetes-stubs has no watch submodule stub
+    client,
+    watch,
+)
+from kubernetes.client.exceptions import ApiException
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.exceptions import parse_api_exception
@@ -18,7 +22,7 @@ class EventManager(BaseResourceManager[Any]):
 
     def __init__(
         self,
-        kube_client: "KubeClient | None" = None,
+        kube_client: KubeClient | None = None,
         default_namespace: str = "default",
         dry_run: bool = False,
     ) -> None:
@@ -80,17 +84,14 @@ class EventManager(BaseResourceManager[Any]):
             api = self._get_api()
             result = api.list_event_for_all_namespaces(
                 field_selector=(
-                    f"involvedObject.name={node_name},"
-                    "involvedObject.kind=Node"
+                    f"involvedObject.name={node_name}," "involvedObject.kind=Node"
                 ),
             )
             return [self._event_to_dict(e) for e in result.items]
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
 
-    def get_warning_events(
-        self, namespace: str | None = None
-    ) -> list[dict[str, Any]]:
+    def get_warning_events(self, namespace: str | None = None) -> list[dict[str, Any]]:
         return self.list_events(namespace=namespace, event_type="Warning")
 
     def get_recent_events(
@@ -99,7 +100,8 @@ class EventManager(BaseResourceManager[Any]):
         events = self.list_events(namespace=namespace)
         cutoff = datetime.now(tz=timezone.utc) - timedelta(minutes=last_minutes)
         return [
-            e for e in events
+            e
+            for e in events
             if e.get("last_timestamp") and e["last_timestamp"] >= cutoff
         ]
 
@@ -138,10 +140,6 @@ class EventManager(BaseResourceManager[Any]):
             "involved_object_name": (
                 event.involved_object.name if event.involved_object else None
             ),
-            "source_component": (
-                event.source.component if event.source else None
-            ),
-            "source_host": (
-                event.source.host if event.source else None
-            ),
+            "source_component": (event.source.component if event.source else None),
+            "source_host": (event.source.host if event.source else None),
         }

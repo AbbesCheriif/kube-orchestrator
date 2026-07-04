@@ -25,10 +25,8 @@ class AffinityBuilder:
         key: str,
         operator: str,
         values: list[str],
-    ) -> "AffinityBuilder":
-        self._node_required.append(
-            {"key": key, "operator": operator, "values": values}
-        )
+    ) -> AffinityBuilder:
+        self._node_required.append({"key": key, "operator": operator, "values": values})
         return self
 
     def preferred_node_affinity(
@@ -37,15 +35,17 @@ class AffinityBuilder:
         operator: str,
         values: list[str],
         weight: int = 1,
-    ) -> "AffinityBuilder":
-        self._node_preferred.append({
-            "weight": weight,
-            "preference": {
-                "matchExpressions": [
-                    {"key": key, "operator": operator, "values": values}
-                ]
-            },
-        })
+    ) -> AffinityBuilder:
+        self._node_preferred.append(
+            {
+                "weight": weight,
+                "preference": {
+                    "matchExpressions": [
+                        {"key": key, "operator": operator, "values": values}
+                    ]
+                },
+            }
+        )
         return self
 
     # ------------------------------------------------------------------
@@ -54,10 +54,10 @@ class AffinityBuilder:
 
     def required_pod_affinity(
         self,
-        label_selector: dict,
+        label_selector: dict[str, Any],
         topology_key: str,
-        namespaces: list | None = None,
-    ) -> "AffinityBuilder":
+        namespaces: list[Any] | None = None,
+    ) -> AffinityBuilder:
         term: dict[str, Any] = {
             "labelSelector": label_selector,
             "topologyKey": topology_key,
@@ -69,11 +69,11 @@ class AffinityBuilder:
 
     def preferred_pod_affinity(
         self,
-        label_selector: dict,
+        label_selector: dict[str, Any],
         topology_key: str,
-        namespaces: list | None = None,
+        namespaces: list[Any] | None = None,
         weight: int = 1,
-    ) -> "AffinityBuilder":
+    ) -> AffinityBuilder:
         term: dict[str, Any] = {
             "labelSelector": label_selector,
             "topologyKey": topology_key,
@@ -89,10 +89,10 @@ class AffinityBuilder:
 
     def required_pod_anti_affinity(
         self,
-        label_selector: dict,
+        label_selector: dict[str, Any],
         topology_key: str,
-        namespaces: list | None = None,
-    ) -> "AffinityBuilder":
+        namespaces: list[Any] | None = None,
+    ) -> AffinityBuilder:
         term: dict[str, Any] = {
             "labelSelector": label_selector,
             "topologyKey": topology_key,
@@ -104,11 +104,11 @@ class AffinityBuilder:
 
     def preferred_pod_anti_affinity(
         self,
-        label_selector: dict,
+        label_selector: dict[str, Any],
         topology_key: str,
-        namespaces: list | None = None,
+        namespaces: list[Any] | None = None,
         weight: int = 1,
-    ) -> "AffinityBuilder":
+    ) -> AffinityBuilder:
         term: dict[str, Any] = {
             "labelSelector": label_selector,
             "topologyKey": topology_key,
@@ -122,45 +122,43 @@ class AffinityBuilder:
     # Build
     # ------------------------------------------------------------------
 
-    def build(self) -> dict:
+    def build(self) -> dict[str, Any]:
         affinity: dict[str, Any] = {}
 
         if self._node_required or self._node_preferred:
             node_affinity: dict[str, Any] = {}
             if self._node_required:
                 node_affinity["requiredDuringSchedulingIgnoredDuringExecution"] = {
-                    "nodeSelectorTerms": [
-                        {"matchExpressions": self._node_required}
-                    ]
+                    "nodeSelectorTerms": [{"matchExpressions": self._node_required}]
                 }
             if self._node_preferred:
-                node_affinity[
-                    "preferredDuringSchedulingIgnoredDuringExecution"
-                ] = self._node_preferred
+                node_affinity["preferredDuringSchedulingIgnoredDuringExecution"] = (
+                    self._node_preferred
+                )
             affinity["nodeAffinity"] = node_affinity
 
         if self._pod_affinity_required or self._pod_affinity_preferred:
             pod_affinity: dict[str, Any] = {}
             if self._pod_affinity_required:
-                pod_affinity[
-                    "requiredDuringSchedulingIgnoredDuringExecution"
-                ] = self._pod_affinity_required
+                pod_affinity["requiredDuringSchedulingIgnoredDuringExecution"] = (
+                    self._pod_affinity_required
+                )
             if self._pod_affinity_preferred:
-                pod_affinity[
-                    "preferredDuringSchedulingIgnoredDuringExecution"
-                ] = self._pod_affinity_preferred
+                pod_affinity["preferredDuringSchedulingIgnoredDuringExecution"] = (
+                    self._pod_affinity_preferred
+                )
             affinity["podAffinity"] = pod_affinity
 
         if self._pod_anti_required or self._pod_anti_preferred:
             pod_anti: dict[str, Any] = {}
             if self._pod_anti_required:
-                pod_anti[
-                    "requiredDuringSchedulingIgnoredDuringExecution"
-                ] = self._pod_anti_required
+                pod_anti["requiredDuringSchedulingIgnoredDuringExecution"] = (
+                    self._pod_anti_required
+                )
             if self._pod_anti_preferred:
-                pod_anti[
-                    "preferredDuringSchedulingIgnoredDuringExecution"
-                ] = self._pod_anti_preferred
+                pod_anti["preferredDuringSchedulingIgnoredDuringExecution"] = (
+                    self._pod_anti_preferred
+                )
             affinity["podAntiAffinity"] = pod_anti
 
         return affinity

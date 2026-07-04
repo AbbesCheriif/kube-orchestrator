@@ -9,7 +9,6 @@ from kubernetes.client import (
     V1NetworkPolicy,
 )
 
-from kube_orchestrator.core.exceptions import parse_api_exception
 from kube_orchestrator.resources.base import BaseResourceManager
 from kube_orchestrator.resources.helpers import build_metadata
 
@@ -26,6 +25,9 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
     def _api_version(self) -> str:
         return "networking.k8s.io/v1"
 
+    def _resource_name(self) -> str:
+        return "network_policy"
+
     # ------------------------------------------------------------------
     # Full-spec factory
     # ------------------------------------------------------------------
@@ -34,11 +36,11 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
         self,
         name: str,
         namespace: str,
-        pod_selector: dict,
+        pod_selector: dict[str, Any],
         policy_types: list[str],
-        ingress_rules: list[dict] | None = None,
-        egress_rules: list[dict] | None = None,
-        labels: dict | None = None,
+        ingress_rules: list[dict[str, Any]] | None = None,
+        egress_rules: list[dict[str, Any]] | None = None,
+        labels: dict[str, Any] | None = None,
     ) -> V1NetworkPolicy:
         """Create a NetworkPolicy with full spec.
 
@@ -72,7 +74,7 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
         self,
         name: str,
         namespace: str,
-        pod_selector: dict,
+        pod_selector: dict[str, Any],
     ) -> V1NetworkPolicy:
         """Allow all ingress traffic to pods matching pod_selector."""
         return self.create_policy(
@@ -87,7 +89,7 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
         self,
         name: str,
         namespace: str,
-        pod_selector: dict,
+        pod_selector: dict[str, Any],
     ) -> V1NetworkPolicy:
         """Deny all ingress traffic to pods matching pod_selector."""
         return self.create_policy(
@@ -102,7 +104,7 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
         self,
         name: str,
         namespace: str,
-        pod_selector: dict,
+        pod_selector: dict[str, Any],
     ) -> V1NetworkPolicy:
         """Allow all egress traffic from pods matching pod_selector."""
         return self.create_policy(
@@ -117,7 +119,7 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
         self,
         name: str,
         namespace: str,
-        pod_selector: dict,
+        pod_selector: dict[str, Any],
     ) -> V1NetworkPolicy:
         """Deny all egress traffic from pods matching pod_selector."""
         return self.create_policy(
@@ -132,12 +134,14 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
         self,
         name: str,
         namespace: str,
-        pod_selector: dict,
-        from_namespace_selector: dict,
-        ports: list[dict] | None = None,
+        pod_selector: dict[str, Any],
+        from_namespace_selector: dict[str, Any],
+        ports: list[dict[str, Any]] | None = None,
     ) -> V1NetworkPolicy:
         """Allow ingress from all pods in namespaces matching from_namespace_selector."""
-        rule: dict[str, Any] = {"from": [{"namespaceSelector": from_namespace_selector}]}
+        rule: dict[str, Any] = {
+            "from": [{"namespaceSelector": from_namespace_selector}]
+        }
         if ports:
             rule["ports"] = ports
         return self.create_policy(
@@ -152,9 +156,9 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
         self,
         name: str,
         namespace: str,
-        pod_selector: dict,
-        from_pod_selector: dict,
-        ports: list[dict] | None = None,
+        pod_selector: dict[str, Any],
+        from_pod_selector: dict[str, Any],
+        ports: list[dict[str, Any]] | None = None,
     ) -> V1NetworkPolicy:
         """Allow ingress from pods matching from_pod_selector in the same namespace."""
         rule: dict[str, Any] = {"from": [{"podSelector": from_pod_selector}]}
@@ -172,10 +176,10 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
         self,
         name: str,
         namespace: str,
-        pod_selector: dict,
+        pod_selector: dict[str, Any],
         cidr: str,
         except_cidrs: list[str] | None = None,
-        ports: list[dict] | None = None,
+        ports: list[dict[str, Any]] | None = None,
     ) -> V1NetworkPolicy:
         """Allow egress to an IP block (CIDR), optionally excluding sub-ranges."""
         ip_block: dict[str, Any] = {"cidr": cidr}
@@ -215,7 +219,7 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
     # Analysis helpers
     # ------------------------------------------------------------------
 
-    def validate_policy(self, policy: dict) -> list[str]:
+    def validate_policy(self, policy: dict[str, Any]) -> list[str]:
         """Return a list of validation error messages for a raw policy dict.
 
         Checks required fields, valid policyTypes, and peer consistency.
@@ -251,14 +255,14 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
 
         return errors
 
-    def detect_conflicts(self, namespace: str) -> list[dict]:
+    def detect_conflicts(self, namespace: str) -> list[dict[str, Any]]:
         """Detect overlapping NetworkPolicies in a namespace.
 
         Returns a list of conflict descriptors: pairs of policy names
         whose podSelectors overlap (both select all pods or share labels).
         """
         policies = self.list_policies(namespace)
-        conflicts: list[dict] = []
+        conflicts: list[dict[str, Any]] = []
 
         for i in range(len(policies)):
             for j in range(i + 1, len(policies)):
@@ -267,8 +271,12 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
                 if self._selectors_overlap(p1, p2):
                     conflicts.append(
                         {
-                            "policy_a": getattr(getattr(p1, "metadata", None), "name", ""),
-                            "policy_b": getattr(getattr(p2, "metadata", None), "name", ""),
+                            "policy_a": getattr(
+                                getattr(p1, "metadata", None), "name", ""
+                            ),
+                            "policy_b": getattr(
+                                getattr(p2, "metadata", None), "name", ""
+                            ),
                             "reason": "overlapping podSelectors",
                         }
                     )
@@ -277,7 +285,7 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
     def get_policies_for_pod(
         self,
         namespace: str,
-        pod_labels: dict,
+        pod_labels: dict[str, Any],
     ) -> list[V1NetworkPolicy]:
         """Return all NetworkPolicies in namespace that select a pod with pod_labels."""
         policies = self.list_policies(namespace)
@@ -297,7 +305,7 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _build_ports(ports: list[dict]) -> list[dict[str, Any]]:
+    def _build_ports(ports: list[dict[str, Any]]) -> list[dict[str, Any]]:
         result = []
         for p in ports:
             entry: dict[str, Any] = {}
@@ -311,7 +319,7 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
         return result
 
     @staticmethod
-    def _build_peer(peer: dict) -> dict[str, Any]:
+    def _build_peer(peer: dict[str, Any]) -> dict[str, Any]:
         entry: dict[str, Any] = {}
         if "ipBlock" in peer:
             ip_block: dict[str, Any] = {"cidr": peer["ipBlock"]["cidr"]}
@@ -324,7 +332,7 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
             entry["podSelector"] = peer["podSelector"]
         return entry
 
-    def _build_ingress_rule(self, rule: dict) -> dict[str, Any]:
+    def _build_ingress_rule(self, rule: dict[str, Any]) -> dict[str, Any]:
         entry: dict[str, Any] = {}
         if "from" in rule:
             entry["from"] = [self._build_peer(p) for p in rule["from"]]
@@ -332,7 +340,7 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
             entry["ports"] = self._build_ports(rule["ports"])
         return entry
 
-    def _build_egress_rule(self, rule: dict) -> dict[str, Any]:
+    def _build_egress_rule(self, rule: dict[str, Any]) -> dict[str, Any]:
         entry: dict[str, Any] = {}
         if "to" in rule:
             entry["to"] = [self._build_peer(p) for p in rule["to"]]
@@ -341,7 +349,7 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
         return entry
 
     @staticmethod
-    def _validate_peer(peer: dict, path: str) -> list[str]:
+    def _validate_peer(peer: dict[str, Any], path: str) -> list[str]:
         errors: list[str] = []
         valid_keys = {"ipBlock", "namespaceSelector", "podSelector"}
         unknown = set(peer.keys()) - valid_keys
@@ -352,7 +360,7 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
         return errors
 
     @staticmethod
-    def _validate_port(port: dict, path: str) -> list[str]:
+    def _validate_port(port: dict[str, Any], path: str) -> list[str]:
         errors: list[str] = []
         valid_protocols = {"TCP", "UDP", "SCTP"}
         if "protocol" in port and port["protocol"] not in valid_protocols:
@@ -378,5 +386,7 @@ class NetworkPolicyManager(BaseResourceManager[V1NetworkPolicy]):
         return bool(set(ml1.items()) & set(ml2.items()))
 
     @staticmethod
-    def _labels_match(selector_labels: dict, pod_labels: dict) -> bool:
+    def _labels_match(
+        selector_labels: dict[str, Any], pod_labels: dict[str, Any]
+    ) -> bool:
         return all(pod_labels.get(k) == v for k, v in selector_labels.items())

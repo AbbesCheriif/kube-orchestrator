@@ -10,6 +10,7 @@ dist/
 build/
 *.egg-info/
 .eggs/
+kube_orchestrator/_version.py
 
 # IDE
 .idea/

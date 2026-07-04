@@ -8,9 +8,14 @@ from typing import Any
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.manifest.validator import route_by_kind
 
-
-_MANAGED_FIELDS_KEYS = ("managedFields", "resourceVersion", "uid", "generation",
-                        "creationTimestamp", "selfLink")
+_MANAGED_FIELDS_KEYS = (
+    "managedFields",
+    "resourceVersion",
+    "uid",
+    "generation",
+    "creationTimestamp",
+    "selfLink",
+)
 
 
 class ManifestApplier:
@@ -44,7 +49,7 @@ class ManifestApplier:
         try:
             resource = manager.get(name, namespace)
             if hasattr(resource, "to_dict"):
-                return resource.to_dict()
+                return dict(resource.to_dict())
             return dict(resource)
         except Exception:
             return None
@@ -150,10 +155,7 @@ class ManifestApplier:
         from kube_orchestrator.manifest.loader import load_file
         from kube_orchestrator.manifest.renderer import render_file
 
-        if values is not None:
-            manifests = render_file(path, values)
-        else:
-            manifests = load_file(path)
+        manifests = render_file(path, values) if values is not None else load_file(path)
         return [self.apply_manifest(m, namespace) for m in manifests]
 
     def apply_directory(

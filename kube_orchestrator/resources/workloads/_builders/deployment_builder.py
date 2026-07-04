@@ -30,15 +30,15 @@ class DeploymentBuilder:
     # Replica and selector helpers
     # ------------------------------------------------------------------
 
-    def with_replicas(self, count: int) -> "DeploymentBuilder":
+    def with_replicas(self, count: int) -> DeploymentBuilder:
         self._spec["replicas"] = count
         return self
 
     def with_selector(
         self,
         match_labels: dict[str, str],
-        match_expressions: list[dict] | None = None,
-    ) -> "DeploymentBuilder":
+        match_expressions: list[dict[str, Any]] | None = None,
+    ) -> DeploymentBuilder:
         self._selector = {"matchLabels": match_labels}
         if match_expressions:
             self._selector["matchExpressions"] = match_expressions
@@ -52,7 +52,7 @@ class DeploymentBuilder:
         self,
         max_surge: int | str = 1,
         max_unavailable: int | str = 0,
-    ) -> "DeploymentBuilder":
+    ) -> DeploymentBuilder:
         self._strategy = {
             "type": "RollingUpdate",
             "rollingUpdate": {
@@ -62,7 +62,7 @@ class DeploymentBuilder:
         }
         return self
 
-    def with_recreate_strategy(self) -> "DeploymentBuilder":
+    def with_recreate_strategy(self) -> DeploymentBuilder:
         self._strategy = {"type": "Recreate"}
         return self
 
@@ -70,19 +70,19 @@ class DeploymentBuilder:
     # Rollout control helpers
     # ------------------------------------------------------------------
 
-    def with_revision_history_limit(self, limit: int) -> "DeploymentBuilder":
+    def with_revision_history_limit(self, limit: int) -> DeploymentBuilder:
         self._spec["revisionHistoryLimit"] = limit
         return self
 
-    def with_progress_deadline(self, seconds: int) -> "DeploymentBuilder":
+    def with_progress_deadline(self, seconds: int) -> DeploymentBuilder:
         self._spec["progressDeadlineSeconds"] = seconds
         return self
 
-    def with_min_ready_seconds(self, seconds: int) -> "DeploymentBuilder":
+    def with_min_ready_seconds(self, seconds: int) -> DeploymentBuilder:
         self._spec["minReadySeconds"] = seconds
         return self
 
-    def with_paused(self, paused: bool) -> "DeploymentBuilder":
+    def with_paused(self, paused: bool) -> DeploymentBuilder:
         self._spec["paused"] = paused
         return self
 
@@ -90,11 +90,11 @@ class DeploymentBuilder:
     # Pod template helper
     # ------------------------------------------------------------------
 
-    def with_pod_template(self, pod_builder: PodBuilder) -> "DeploymentBuilder":
+    def with_pod_template(self, pod_builder: PodBuilder) -> DeploymentBuilder:
         pod_manifest = pod_builder.build()
         raw_meta = pod_manifest.get("metadata", {})
         # Template metadata must have labels (matching selector), not name/namespace
-        template_meta: dict = {}
+        template_meta: dict[str, Any] = {}
         if raw_meta.get("labels"):
             template_meta["labels"] = raw_meta["labels"]
         if raw_meta.get("annotations"):
@@ -109,7 +109,7 @@ class DeploymentBuilder:
     # Build
     # ------------------------------------------------------------------
 
-    def build(self) -> dict:
+    def build(self) -> dict[str, Any]:
         metadata: dict[str, Any] = {
             "name": self._name,
             "namespace": self._namespace,
@@ -127,8 +127,12 @@ class DeploymentBuilder:
         if self._pod_template:
             template = dict(self._pod_template)
             # Ensure template metadata has labels matching selector
-            if self._selector.get("matchLabels") and not template.get("metadata", {}).get("labels"):
-                template.setdefault("metadata", {})["labels"] = self._selector["matchLabels"]
+            if self._selector.get("matchLabels") and not template.get(
+                "metadata", {}
+            ).get("labels"):
+                template.setdefault("metadata", {})["labels"] = self._selector[
+                    "matchLabels"
+                ]
             spec["template"] = template
 
         return {

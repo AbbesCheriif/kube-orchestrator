@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from kubernetes import client
-from kubernetes.client.rest import ApiException
+from kubernetes.client.exceptions import ApiException
 
 from kube_orchestrator.core.client import KubeClient
 from kube_orchestrator.core.exceptions import ResourceNotFoundError, parse_api_exception
@@ -22,7 +22,7 @@ class StatefulSetManager(BaseResourceManager[client.V1StatefulSet]):
 
     def __init__(
         self,
-        kube_client: "KubeClient | None" = None,
+        kube_client: KubeClient | None = None,
         default_namespace: str = "default",
         dry_run: bool = False,
     ) -> None:
@@ -37,6 +37,9 @@ class StatefulSetManager(BaseResourceManager[client.V1StatefulSet]):
     def _api_version(self) -> str:
         return "apps/v1"
 
+    def _resource_name(self) -> str:
+        return "stateful_set"
+
     # ------------------------------------------------------------------
     # CRUD
     # ------------------------------------------------------------------
@@ -44,10 +47,14 @@ class StatefulSetManager(BaseResourceManager[client.V1StatefulSet]):
     def create_statefulset(
         self,
         builder: StatefulSetBuilder | None = None,
-        manifest: dict | None = None,
+        manifest: dict[str, Any] | None = None,
         namespace: str | None = None,
     ) -> client.V1StatefulSet:
         body = builder.build() if builder else manifest
+        if body is None:
+            raise ValueError(
+                "create_statefulset requires either a builder or a manifest"
+            )
         return self.create(body, namespace)
 
     def get_statefulset(
@@ -66,7 +73,7 @@ class StatefulSetManager(BaseResourceManager[client.V1StatefulSet]):
         self,
         name: str,
         namespace: str | None = None,
-        manifest: dict | None = None,
+        manifest: dict[str, Any] | None = None,
     ) -> client.V1StatefulSet:
         return self.update(name, manifest or {}, namespace)
 
@@ -146,9 +153,7 @@ class StatefulSetManager(BaseResourceManager[client.V1StatefulSet]):
         ns = namespace or self.default_namespace
         pod_name = f"{name}-{ordinal}"
         try:
-            return self.client.core_v1.read_namespaced_pod(
-                name=pod_name, namespace=ns
-            )
+            return self.client.core_v1.read_namespaced_pod(name=pod_name, namespace=ns)
         except ApiException as exc:
             raise parse_api_exception(exc) from exc
 
@@ -165,7 +170,9 @@ class StatefulSetManager(BaseResourceManager[client.V1StatefulSet]):
                 pod = self.get_pod_by_ordinal(name, namespace, ordinal)
                 if pod.status and pod.status.phase == "Running":
                     conditions = pod.status.conditions or []
-                    if any(c.type == "Ready" and c.status == "True" for c in conditions):
+                    if any(
+                        c.type == "Ready" and c.status == "True" for c in conditions
+                    ):
                         return True
             except (ResourceNotFoundError, ApiException):
                 pass
@@ -198,7 +205,7 @@ class StatefulSetManager(BaseResourceManager[client.V1StatefulSet]):
 
     def get_rollout_status(
         self, name: str, namespace: str | None = None
-    ) -> dict:
+    ) -> dict[str, Any]:
         sts = self.get_statefulset(name, namespace)
         status = sts.status or client.V1StatefulSetStatus(replicas=0)
         spec_replicas = (sts.spec.replicas or 1) if sts.spec else 1
@@ -253,13 +260,9 @@ class StatefulSetManager(BaseResourceManager[client.V1StatefulSet]):
             if c.name == container_name:
                 c.image = image
                 break
-        return self.update_statefulset(
-            name, namespace, sts.to_dict() if hasattr(sts, "to_dict") else {}
-        )
+        return self.update_statefulset(name, namespace, dict(sts.to_dict()))
 
-    def restart(
-        self, name: str, namespace: str | None = None
-    ) -> client.V1StatefulSet:
+    def restart(self, name: str, namespace: str | None = None) -> client.V1StatefulSet:
         now = datetime.now(timezone.utc).isoformat()
         patch: dict[str, Any] = {
             "spec": {
