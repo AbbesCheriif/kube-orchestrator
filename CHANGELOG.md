@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.0] - 2026-06-28
+## [1.0.0] - 2026-07-04
 
 ### Added
 - Kubernetes client engine (`KubeClient`, `KubeConfig`) with multi-context
@@ -49,10 +49,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Node management: cordon, drain, taint/untaint, affinity helpers.
 - Cluster resources: HorizontalPodAutoscaler, PriorityClass,
   PodDisruptionBudget, RuntimeClass, Lease, Event querying.
-- GitOps manifest engine: `ManifestLoader`, `ManifestValidator` (with
-  dependency ordering and circular-dependency detection), `ManifestRenderer`
-  (Jinja2 templating with a values file, mini-Helm style), `ManifestApplier`
-  and `ManifestDeleter` for idempotent apply/delete.
+- GitOps manifest engine: manifest loading (`load_file`/`load_directory`,
+  multi-doc YAML, URL/stdin sources), validation (`validate_manifest`, with
+  dependency ordering and circular-dependency detection), Jinja2 templating
+  with a values file (`render_file`/`render_directory`, mini-Helm style),
+  `ManifestApplier` and `ManifestDeleter` for idempotent apply/delete, and a
+  `DependencyResolver` for ordered apply + readiness waiting.
 - CRD framework: `CRDInstaller`, `CustomObjectManager` (Adapter pattern for
   any Custom Resource) and `APIDiscovery` for runtime API/CRD discovery.
 - Platform engine: `ClusterHealthReporter` for cluster/workload health
@@ -63,7 +65,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `kube-orchestrator` / `ko` CLI (Typer + Rich): `apply`, `delete`, `deploy`,
   `rollback`, `status`, `nodes`, `doctor`, `logs`, plus `--version`.
 - Full unit and integration test suite (pytest, mocked Kubernetes API for
-  unit tests, real cluster support for integration tests).
+  unit tests, real cluster support for integration tests). Unit test line
+  coverage reaches a genuine 100%, enforced via `--cov-fail-under=100`.
+  Integration tests cover the apply/rollback/manifest-engine, HPA, RBAC,
+  CRD and scaling workflows end-to-end against a real cluster.
 - Multi-stage Dockerfile, docker-compose for local development, and
   MkDocs documentation site with an mkdocstrings-generated API reference.
 - CI/CD: lint & type-check workflow (black, isort, ruff, mypy --strict,
@@ -99,6 +104,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   field (correct name is `number_misscheduled`).
 - `PodManager.attach_ephemeral_container` built a `V1PodSpec` missing the
   required `containers` field.
+- `ClusterHealthReporter`'s health report used field names that didn't
+  match what `print_health_report` read, so `doctor` always rendered
+  blank sections; `status`/`nodes list` ignored `--output json`/`yaml`
+  and always printed a Rich table.
+- `apply`, `delete`, `deploy`, `logs` and `rollback` rejected
+  `command arg --option value` syntax (only `command --option value arg`
+  worked) because Click defaults `allow_interspersed_args=False` on
+  commands added to a `Typer` group.
+- `configure_logging()` crashed on the first log call:
+  `structlog.stdlib.add_logger_name` requires a stdlib `logging.Logger`
+  (reads `.name`), which is incompatible with the configured
+  `PrintLoggerFactory`.
+- `kube_orchestrator/__init__.py` and the `manifest`, `crd`,
+  `resources.storage` and `resources.rbac` subpackages declared `__all__`
+  without ever importing the names, so `from kube_orchestrator import
+  PodManager` (and every other public name) raised `ImportError`;
+  `resources.workloads` and `resources.cluster` were each missing several
+  managers that already existed (`DeploymentManager`, `ReplicaSetManager`,
+  `StatefulSetManager`, `HPAManager`, `NodeManager`).
 
 [Unreleased]: https://github.com/AbbesCheriif/kube-orchestrator/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/AbbesCheriif/kube-orchestrator/releases/tag/v1.0.0
