@@ -3,6 +3,11 @@
 # ---- Stage 1: builder ----------------------------------------------------
 FROM python:3.14-slim AS builder
 
+# No .git in this build context, so setuptools-scm can't derive a version
+# on its own; the release workflow passes the real tag version through.
+ARG VERSION=0.0.0
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=${VERSION}
+
 WORKDIR /src
 
 COPY pyproject.toml README.md LICENSE MANIFEST.in ./
