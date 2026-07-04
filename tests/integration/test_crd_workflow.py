@@ -2,36 +2,40 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
-CRD_MANIFEST = {
-    "apiVersion": "apiextensions.k8s.io/v1",
-    "kind": "CustomResourceDefinition",
-    "metadata": {"name": "widgets.ko-test.example.com"},
-    "spec": {
-        "group": "ko-test.example.com",
-        "names": {"plural": "widgets", "singular": "widget", "kind": "Widget"},
-        "scope": "Namespaced",
-        "versions": [
-            {
-                "name": "v1",
-                "served": True,
-                "storage": True,
-                "schema": {
-                    "openAPIV3Schema": {
-                        "type": "object",
-                        "properties": {
-                            "spec": {
-                                "type": "object",
-                                "properties": {"size": {"type": "string"}},
-                            }
-                        },
-                    }
-                },
-            }
-        ],
-    },
-}
+
+def _crd_manifest(plural: str, singular: str, kind: str, group: str) -> dict[str, Any]:
+    return {
+        "apiVersion": "apiextensions.k8s.io/v1",
+        "kind": "CustomResourceDefinition",
+        "metadata": {"name": f"{plural}.{group}"},
+        "spec": {
+            "group": group,
+            "names": {"plural": plural, "singular": singular, "kind": kind},
+            "scope": "Namespaced",
+            "versions": [
+                {
+                    "name": "v1",
+                    "served": True,
+                    "storage": True,
+                    "schema": {
+                        "openAPIV3Schema": {
+                            "type": "object",
+                            "properties": {
+                                "spec": {
+                                    "type": "object",
+                                    "properties": {"size": {"type": "string"}},
+                                }
+                            },
+                        }
+                    },
+                }
+            ],
+        },
+    }
 
 
 @pytest.mark.integration
@@ -42,8 +46,9 @@ class TestCrdWorkflow:
         from kube_orchestrator.crd.custom_object_manager import CustomObjectManager
         from kube_orchestrator.crd.installer import CRDInstaller
 
+        manifest = _crd_manifest("widgets", "widget", "Widget", "ko-test.example.com")
         installer = CRDInstaller(kube_client=kube_client)
-        installer.install(dict(CRD_MANIFEST))
+        installer.install(dict(manifest))
         try:
             established = installer.wait_for_established(
                 "widgets.ko-test.example.com", timeout_seconds=60
@@ -74,19 +79,28 @@ class TestCrdWorkflow:
             installer.uninstall("widgets.ko-test.example.com")
 
     def test_discovery_finds_installed_crd(self, kube_client) -> None:
-        """APIDiscovery.discover_all_crds should list a freshly installed CRD."""
+        """APIDiscovery.discover_all_crds should list a freshly installed CRD.
+
+        Uses its own CRD name (distinct from the other test in this class):
+        CRD deletion is asynchronous (finalizers), so reusing a name a
+        previous test just deleted can race with that deletion and leave
+        the freshly (re)created CRD stuck mid-termination.
+        """
         from kube_orchestrator.crd.discovery import APIDiscovery
         from kube_orchestrator.crd.installer import CRDInstaller
 
+        manifest = _crd_manifest("gadgets", "gadget", "Gadget", "ko-test.example.com")
         installer = CRDInstaller(kube_client=kube_client)
-        installer.install(dict(CRD_MANIFEST))
+        installer.install(dict(manifest))
         try:
-            installer.wait_for_established(
-                "widgets.ko-test.example.com", timeout_seconds=60
+            established = installer.wait_for_established(
+                "gadgets.ko-test.example.com", timeout_seconds=60
             )
+            assert established is True
+
             discovery = APIDiscovery(kube_client=kube_client)
             crds = discovery.discover_all_crds()
             names = [c["name"] for c in crds]
-            assert "widgets.ko-test.example.com" in names
+            assert "gadgets.ko-test.example.com" in names
         finally:
-            installer.uninstall("widgets.ko-test.example.com")
+            installer.uninstall("gadgets.ko-test.example.com")
