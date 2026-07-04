@@ -141,9 +141,7 @@ class TestGetLiveResource:
         }
         resource = MagicMock()
         resource.to_dict.return_value = {"kind": "ConfigMap"}
-        with patch(
-            "kube_orchestrator.manifest.applier.route_by_kind"
-        ) as mock_route:
+        with patch("kube_orchestrator.manifest.applier.route_by_kind") as mock_route:
             manager_cls = MagicMock()
             manager_cls.return_value.get.return_value = resource
             mock_route.return_value = manager_cls
@@ -156,9 +154,7 @@ class TestGetLiveResource:
             "kind": "ConfigMap",
             "metadata": {"name": "cm", "namespace": "default"},
         }
-        with patch(
-            "kube_orchestrator.manifest.applier.route_by_kind"
-        ) as mock_route:
+        with patch("kube_orchestrator.manifest.applier.route_by_kind") as mock_route:
             manager_cls = MagicMock()
             manager_cls.return_value.get.return_value = {"kind": "ConfigMap"}
             mock_route.return_value = manager_cls
@@ -171,9 +167,7 @@ class TestGetLiveResource:
             "kind": "ConfigMap",
             "metadata": {"name": "cm", "namespace": "default"},
         }
-        with patch(
-            "kube_orchestrator.manifest.applier.route_by_kind"
-        ) as mock_route:
+        with patch("kube_orchestrator.manifest.applier.route_by_kind") as mock_route:
             manager_cls = MagicMock()
             manager_cls.return_value.get.side_effect = RuntimeError("not found")
             mock_route.return_value = manager_cls
@@ -208,13 +202,13 @@ class TestApplyManifestActions:
         assert original["metadata"]["namespace"] == "default"
         manager_cls.return_value.create.assert_called_once()
 
-    def test_apply_manifest_unknown_kind_raises(
-        self, applier: ManifestApplier
-    ) -> None:
+    def test_apply_manifest_unknown_kind_raises(self, applier: ManifestApplier) -> None:
         manifest = {"kind": "Bogus", "metadata": {"name": "x"}}
-        with patch.object(applier, "get_live_resource", return_value=None):
-            with pytest.raises(ValueError, match="Unknown kind"):
-                applier.apply_manifest(manifest)
+        with (
+            patch.object(applier, "get_live_resource", return_value=None),
+            pytest.raises(ValueError, match="Unknown kind"),
+        ):
+            applier.apply_manifest(manifest)
 
     def test_apply_manifest_create_action(self, applier: ManifestApplier) -> None:
         manifest = self._manifest()
@@ -355,9 +349,11 @@ class TestDryRunFileAndPlan:
     def test_dry_run_file_restores_flag_even_on_error(
         self, applier: ManifestApplier
     ) -> None:
-        with patch.object(applier, "apply_file", side_effect=RuntimeError("boom")):
-            with pytest.raises(RuntimeError):
-                applier.dry_run_file("manifests.yaml")
+        with (
+            patch.object(applier, "apply_file", side_effect=RuntimeError("boom")),
+            pytest.raises(RuntimeError),
+        ):
+            applier.dry_run_file("manifests.yaml")
         assert applier.dry_run is False
 
     def test_print_plan(self, applier: ManifestApplier, capsys) -> None:
@@ -374,7 +370,9 @@ class TestDryRunFileAndPlan:
         assert "CREATE" in captured.out
         assert "ConfigMap/cm" in captured.out
 
-    def test_print_plan_without_namespace(self, applier: ManifestApplier, capsys) -> None:
+    def test_print_plan_without_namespace(
+        self, applier: ManifestApplier, capsys
+    ) -> None:
         manifest = {"kind": "ClusterRole", "metadata": {"name": "cr"}}
         with (
             patch.object(applier, "get_live_resource", return_value=None),

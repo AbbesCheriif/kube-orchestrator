@@ -334,9 +334,7 @@ class TestWatch:
         received = []
         with patch("kubernetes.watch.Watch") as watch_cls:
             watch_cls.return_value.stream.return_value = events
-            manager.watch(
-                "default", callback=lambda t, o: received.append((t, o))
-            )
+            manager.watch("default", callback=lambda t, o: received.append((t, o)))
         assert received == [("ADDED", "widget-obj")]
 
     def test_cluster_scoped_fallback(
@@ -418,7 +416,10 @@ class TestGetEvents:
         mock_kube_client.core_v1.list_namespaced_event.return_value.items = ["evt"]
         assert manager.get_events("w1", "default") == ["evt"]
         kwargs = mock_kube_client.core_v1.list_namespaced_event.call_args.kwargs
-        assert kwargs["field_selector"] == "involvedObject.name=w1,involvedObject.kind=Widget"
+        assert (
+            kwargs["field_selector"]
+            == "involvedObject.name=w1,involvedObject.kind=Widget"
+        )
 
     def test_raises_parsed_exception(
         self, manager: _WidgetManager, mock_kube_client: MagicMock

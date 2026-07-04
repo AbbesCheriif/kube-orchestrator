@@ -15,7 +15,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kube_orchestrator.core.exceptions import ResourceNotFoundError
 from kube_orchestrator.resources.cluster.namespace import NamespaceManager
 
 
@@ -175,9 +174,7 @@ class TestPhaseAndWaiting:
 
         core_api.read_namespace.side_effect = ApiException(status=404)
         with patch("kube_orchestrator.resources.cluster.namespace.time.sleep"):
-            assert (
-                ns_manager.wait_for_active("team-a", timeout_seconds=0.05) is False
-            )
+            assert ns_manager.wait_for_active("team-a", timeout_seconds=0.05) is False
 
     def test_wait_for_deletion_returns_true_when_gone(
         self, ns_manager: NamespaceManager, core_api: MagicMock
@@ -192,9 +189,7 @@ class TestPhaseAndWaiting:
     ) -> None:
         core_api.read_namespace.return_value = MagicMock()
         with patch("kube_orchestrator.resources.cluster.namespace.time.sleep"):
-            assert (
-                ns_manager.wait_for_deletion("team-a", timeout_seconds=0.05) is False
-            )
+            assert ns_manager.wait_for_deletion("team-a", timeout_seconds=0.05) is False
 
 
 @pytest.mark.unit
@@ -320,7 +315,11 @@ class TestCloneNamespaceConfig:
             ns_manager.clone_namespace_config("source-ns", "dest-ns")
 
             quota_mgr_cls.return_value.create_quota.assert_called_once_with(
-                name="compute-quota", namespace="dest-ns", hard={"cpu": "4"}, scopes=None, scope_selector=None
+                name="compute-quota",
+                namespace="dest-ns",
+                hard={"cpu": "4"},
+                scopes=None,
+                scope_selector=None,
             )
             lr_mgr_cls.return_value.create_limit_range.assert_called_once_with(
                 name="defaults", namespace="dest-ns", limits=[{"type": "Container"}]

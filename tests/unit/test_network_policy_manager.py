@@ -48,7 +48,9 @@ class TestNetworkPolicyManager:
         self, np_manager: NetworkPolicyManager, mock_networking_v1: MagicMock
     ) -> None:
         np_manager.allow_all_egress("allow-egress", "default", pod_selector={})
-        call_kwargs = mock_networking_v1.create_namespaced_network_policy.call_args.kwargs
+        call_kwargs = (
+            mock_networking_v1.create_namespaced_network_policy.call_args.kwargs
+        )
         assert call_kwargs["body"]["spec"]["egress"] == [{}]
 
     def test_allow_from_namespace(
@@ -61,7 +63,9 @@ class TestNetworkPolicyManager:
             from_namespace_selector={"matchLabels": {"team": "core"}},
             ports=[{"port": 80, "protocol": "TCP", "endPort": 90}],
         )
-        call_kwargs = mock_networking_v1.create_namespaced_network_policy.call_args.kwargs
+        call_kwargs = (
+            mock_networking_v1.create_namespaced_network_policy.call_args.kwargs
+        )
         rule = call_kwargs["body"]["spec"]["ingress"][0]
         assert rule["from"][0]["namespaceSelector"]["matchLabels"] == {"team": "core"}
         assert rule["ports"][0]["port"] == 80
@@ -77,7 +81,9 @@ class TestNetworkPolicyManager:
             from_pod_selector={"matchLabels": {"app": "api"}},
             ports=[{"port": 8080}],
         )
-        call_kwargs = mock_networking_v1.create_namespaced_network_policy.call_args.kwargs
+        call_kwargs = (
+            mock_networking_v1.create_namespaced_network_policy.call_args.kwargs
+        )
         rule = call_kwargs["body"]["spec"]["ingress"][0]
         assert rule["from"][0]["podSelector"]["matchLabels"] == {"app": "api"}
         assert rule["ports"][0]["port"] == 8080
@@ -93,7 +99,9 @@ class TestNetworkPolicyManager:
             except_cidrs=["10.0.0.1/32"],
             ports=[{"port": 443}],
         )
-        call_kwargs = mock_networking_v1.create_namespaced_network_policy.call_args.kwargs
+        call_kwargs = (
+            mock_networking_v1.create_namespaced_network_policy.call_args.kwargs
+        )
         rule = call_kwargs["body"]["spec"]["egress"][0]
         assert rule["to"][0]["ipBlock"]["cidr"] == "10.0.0.0/24"
         assert rule["to"][0]["ipBlock"]["except"] == ["10.0.0.1/32"]
@@ -123,7 +131,12 @@ class TestValidatePolicy:
             "spec": {
                 "podSelector": {},
                 "policyTypes": ["Ingress"],
-                "ingress": [{"from": [{"podSelector": {}}], "ports": [{"protocol": "TCP", "port": 80}]}],
+                "ingress": [
+                    {
+                        "from": [{"podSelector": {}}],
+                        "ports": [{"protocol": "TCP", "port": 80}],
+                    }
+                ],
             }
         }
         assert np_manager.validate_policy(policy) == []
@@ -215,7 +228,11 @@ class TestDetectConflicts:
         conflicts = np_manager.detect_conflicts("default")
 
         assert conflicts == [
-            {"policy_a": "policy-a", "policy_b": "policy-b", "reason": "overlapping podSelectors"}
+            {
+                "policy_a": "policy-a",
+                "policy_b": "policy-b",
+                "reason": "overlapping podSelectors",
+            }
         ]
 
     def test_no_conflict_for_disjoint_selectors(
@@ -253,7 +270,9 @@ class TestGetPoliciesForPod:
         policy.spec.pod_selector.match_labels = {"app": "web"}
         mock_networking_v1.list_namespaced_network_policy.return_value.items = [policy]
 
-        result = np_manager.get_policies_for_pod("default", {"app": "web", "extra": "x"})
+        result = np_manager.get_policies_for_pod(
+            "default", {"app": "web", "extra": "x"}
+        )
         assert result == [policy]
 
     def test_wildcard_selector_matches_any_pod(

@@ -50,8 +50,7 @@ def nodes_list(
             print_table(
                 headers=["NAME", "STATUS", "SCHEDULABLE", "AGE"],
                 rows=[
-                    [i["name"], i["status"], i["schedulable"], i["age"]]
-                    for i in items
+                    [i["name"], i["status"], i["schedulable"], i["age"]] for i in items
                 ],
                 title="Nodes",
             )

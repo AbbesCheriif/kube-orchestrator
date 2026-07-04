@@ -223,11 +223,11 @@ class TestServiceManager:
         svc = MagicMock()
         svc.status.load_balancer.ingress = []
         mock_core_v1.read_namespaced_service.return_value = svc
-        with patch("kube_orchestrator.resources.networking.service.time.sleep"):
-            with pytest.raises(TimeoutError):
-                svc_manager.wait_for_external_ip(
-                    "my-svc", "default", timeout_seconds=0.05
-                )
+        with (
+            patch("kube_orchestrator.resources.networking.service.time.sleep"),
+            pytest.raises(TimeoutError),
+        ):
+            svc_manager.wait_for_external_ip("my-svc", "default", timeout_seconds=0.05)
 
     def test_get_node_port_found(
         self, svc_manager: ServiceManager, mock_core_v1: MagicMock
@@ -298,7 +298,9 @@ class TestServiceManager:
         with pytest.raises(APIError):
             svc_manager.get_target_pods("my-svc", "default")
 
-    def test_add_port(self, svc_manager: ServiceManager, mock_core_v1: MagicMock) -> None:
+    def test_add_port(
+        self, svc_manager: ServiceManager, mock_core_v1: MagicMock
+    ) -> None:
         existing_port = MagicMock(port=80, protocol="TCP")
         existing_port.name = "http"
         existing_port.target_port = 8080

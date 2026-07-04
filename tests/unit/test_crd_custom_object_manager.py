@@ -25,9 +25,7 @@ def api(mock_kube_client: MagicMock) -> MagicMock:
 
 @pytest.mark.unit
 class TestCreate:
-    def test_namespaced(
-        self, manager: CustomObjectManager, api: MagicMock
-    ) -> None:
+    def test_namespaced(self, manager: CustomObjectManager, api: MagicMock) -> None:
         api.create_namespaced_custom_object.return_value = {"kind": "Foo"}
         result = manager.create({"kind": "Foo"}, namespace="default")
         api.create_namespaced_custom_object.assert_called_once_with(

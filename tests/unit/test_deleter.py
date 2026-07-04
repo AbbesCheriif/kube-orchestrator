@@ -31,9 +31,7 @@ class TestDeleteManifest:
         self, mock_kube_client: MagicMock
     ) -> None:
         deleter = ManifestDeleter(client=mock_kube_client, dry_run=True)
-        with patch(
-            "kube_orchestrator.manifest.deleter.route_by_kind"
-        ) as mock_route:
+        with patch("kube_orchestrator.manifest.deleter.route_by_kind") as mock_route:
             manager_cls = MagicMock()
             mock_route.return_value = manager_cls
             result = deleter.delete_manifest(CONFIGMAP)
@@ -43,9 +41,7 @@ class TestDeleteManifest:
     def test_deletes_and_returns_kind_slash_name(
         self, deleter: ManifestDeleter
     ) -> None:
-        with patch(
-            "kube_orchestrator.manifest.deleter.route_by_kind"
-        ) as mock_route:
+        with patch("kube_orchestrator.manifest.deleter.route_by_kind") as mock_route:
             manager_cls = MagicMock()
             mock_route.return_value = manager_cls
             result = deleter.delete_manifest(CONFIGMAP, cascade=False, grace_period=0)
@@ -55,9 +51,7 @@ class TestDeleteManifest:
         assert call_kwargs["grace_period_seconds"] == 0
 
     def test_uses_namespace_override(self, deleter: ManifestDeleter) -> None:
-        with patch(
-            "kube_orchestrator.manifest.deleter.route_by_kind"
-        ) as mock_route:
+        with patch("kube_orchestrator.manifest.deleter.route_by_kind") as mock_route:
             manager_cls = MagicMock()
             mock_route.return_value = manager_cls
             deleter.delete_manifest(CONFIGMAP, namespace="other-ns")
@@ -65,9 +59,7 @@ class TestDeleteManifest:
         assert args[1] == "other-ns"
 
     def test_returns_none_when_delete_raises(self, deleter: ManifestDeleter) -> None:
-        with patch(
-            "kube_orchestrator.manifest.deleter.route_by_kind"
-        ) as mock_route:
+        with patch("kube_orchestrator.manifest.deleter.route_by_kind") as mock_route:
             manager_cls = MagicMock()
             manager_cls.return_value.delete.side_effect = RuntimeError("boom")
             mock_route.return_value = manager_cls
@@ -112,9 +104,7 @@ class TestDeleteFile:
 
 @pytest.mark.unit
 class TestDeleteDirectory:
-    def test_deletes_all_manifests_in_directory(
-        self, deleter: ManifestDeleter
-    ) -> None:
+    def test_deletes_all_manifests_in_directory(self, deleter: ManifestDeleter) -> None:
         with (
             patch(
                 "kube_orchestrator.manifest.deleter.load_directory",

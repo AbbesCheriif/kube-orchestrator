@@ -128,6 +128,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `pip install -e ".[dev]"` — the exact command `tests.yml` and
   `lint.yml` run — failed outright; `ruff`, used by `lint.yml`, was
   also never declared as a dependency anywhere.
+- `black --check .` and `isort --check-only .` both failed (53 and 1
+  files respectively, mostly the test suite added this cycle); `bandit
+  -r kube_orchestrator/ -ll` failed the "security" job with a Medium
+  (unvalidated URL scheme in `load_url`) and a High (Jinja2
+  `autoescape=False`) finding, now fixed/documented.
 
 [Unreleased]: https://github.com/AbbesCheriif/kube-orchestrator/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/AbbesCheriif/kube-orchestrator/releases/tag/v1.0.0

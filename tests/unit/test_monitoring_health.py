@@ -59,7 +59,12 @@ class TestCheckNodeHealth:
     ) -> None:
         mock_kube_client.core_v1.list_node.side_effect = RuntimeError("unreachable")
         result = reporter.check_node_health()
-        assert result == {"error": "unreachable", "ready": 0, "not_ready": 0, "total": 0}
+        assert result == {
+            "error": "unreachable",
+            "ready": 0,
+            "not_ready": 0,
+            "total": 0,
+        }
 
 
 @pytest.mark.unit
@@ -170,7 +175,9 @@ class TestComputeGlobalScore:
         )
         assert score == 70
 
-    def test_floors_at_worst_case_penalty(self, reporter: ClusterHealthReporter) -> None:
+    def test_floors_at_worst_case_penalty(
+        self, reporter: ClusterHealthReporter
+    ) -> None:
         score = reporter._compute_global_score(
             {"total": 10, "not_ready": 10}, {"api_server": False}
         )

@@ -15,7 +15,10 @@ def es_manager(mock_kube_client: MagicMock) -> EndpointSliceManager:
 
 
 def _endpoint(
-    addresses: list[str], ready: bool | None = True, node: str | None = None, zone: str | None = None
+    addresses: list[str],
+    ready: bool | None = True,
+    node: str | None = None,
+    zone: str | None = None,
 ) -> MagicMock:
     ep = MagicMock()
     ep.addresses = addresses
@@ -30,7 +33,9 @@ class TestListSlicesForService:
     def test_uses_service_name_label_selector(
         self, es_manager: EndpointSliceManager, mock_kube_client: MagicMock
     ) -> None:
-        mock_kube_client.discovery_v1.list_namespaced_endpoint_slice.return_value.items = []
+        mock_kube_client.discovery_v1.list_namespaced_endpoint_slice.return_value.items = (
+            []
+        )
         es_manager.list_slices_for_service("web", "default")
         kwargs = (
             mock_kube_client.discovery_v1.list_namespaced_endpoint_slice.call_args.kwargs

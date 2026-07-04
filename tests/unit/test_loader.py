@@ -143,6 +143,10 @@ class TestLoadUrl:
             request = fake_urlopen.call_args.args[0]
             assert request.headers["Authorization"] == "x"
 
+    def test_rejects_non_http_scheme(self) -> None:
+        with pytest.raises(ValueError, match="Unsupported URL scheme"):
+            load_url("file:///etc/passwd")
+
 
 @pytest.mark.unit
 class TestLoadStdin:
@@ -177,7 +181,9 @@ class TestLoadDirectory:
 
     def test_custom_extensions(self, tmp_path) -> None:
         (tmp_path / "a.yaml").write_text("kind: Pod\nmetadata:\n  name: a\n")
-        (tmp_path / "b.json").write_text('{"kind": "Service", "metadata": {"name": "b"}}')
+        (tmp_path / "b.json").write_text(
+            '{"kind": "Service", "metadata": {"name": "b"}}'
+        )
 
         result = load_directory(str(tmp_path), extensions=[".json"])
         assert len(result) == 1

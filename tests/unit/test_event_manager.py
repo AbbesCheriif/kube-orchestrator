@@ -95,9 +95,7 @@ class TestListEvents:
     def test_get_events_for_node(
         self, event_manager: EventManager, mock_core_v1: MagicMock
     ) -> None:
-        mock_core_v1.list_event_for_all_namespaces.return_value.items = [
-            _fake_event()
-        ]
+        mock_core_v1.list_event_for_all_namespaces.return_value.items = [_fake_event()]
         result = event_manager.get_events_for_node("worker-1")
         assert len(result) == 1
 

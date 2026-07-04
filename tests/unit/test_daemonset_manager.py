@@ -214,7 +214,10 @@ class TestStatusHelpers:
         assert ds_manager.get_number_ready("fluentd", "kube-system") == 4
 
     def test_get_pods_per_node(
-        self, ds_manager: DaemonSetManager, mock_apps_v1: MagicMock, mock_core_v1: MagicMock
+        self,
+        ds_manager: DaemonSetManager,
+        mock_apps_v1: MagicMock,
+        mock_core_v1: MagicMock,
     ) -> None:
         ds = MagicMock()
         ds.spec.selector.match_labels = {"app": "fluentd"}
@@ -227,7 +230,10 @@ class TestStatusHelpers:
         assert result == {"worker-1": pod}
 
     def test_get_pods_per_node_raises_parsed_exception(
-        self, ds_manager: DaemonSetManager, mock_apps_v1: MagicMock, mock_core_v1: MagicMock
+        self,
+        ds_manager: DaemonSetManager,
+        mock_apps_v1: MagicMock,
+        mock_core_v1: MagicMock,
     ) -> None:
         ds = MagicMock()
         ds.spec.selector.match_labels = {"app": "fluentd"}

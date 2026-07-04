@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from typer.testing import CliRunner
@@ -91,9 +91,7 @@ class TestDoctorCommand:
             result = runner.invoke(app, ["--namespace", "default"])
 
         assert result.exit_code == 0
-        reporter_cls.return_value.get_workload_health.assert_called_once_with(
-            "default"
-        )
+        reporter_cls.return_value.get_workload_health.assert_called_once_with("default")
 
     def test_fix_flag_prints_warning(self) -> None:
         with (

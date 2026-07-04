@@ -67,7 +67,9 @@ class TestContainerHelpers:
             .with_env("app", "FOO", "bar")
             .build()
         )
-        assert manifest["spec"]["containers"][0]["env"] == [{"name": "FOO", "value": "bar"}]
+        assert manifest["spec"]["containers"][0]["env"] == [
+            {"name": "FOO", "value": "bar"}
+        ]
 
     def test_with_env_from_configmap(self) -> None:
         manifest = (
@@ -77,7 +79,10 @@ class TestContainerHelpers:
             .build()
         )
         env = manifest["spec"]["containers"][0]["env"][0]
-        assert env["valueFrom"]["configMapKeyRef"] == {"name": "app-config", "key": "host"}
+        assert env["valueFrom"]["configMapKeyRef"] == {
+            "name": "app-config",
+            "key": "host",
+        }
 
     def test_with_env_from_secret(self) -> None:
         manifest = (
@@ -87,13 +92,18 @@ class TestContainerHelpers:
             .build()
         )
         env = manifest["spec"]["containers"][0]["env"][0]
-        assert env["valueFrom"]["secretKeyRef"] == {"name": "app-secret", "key": "password"}
+        assert env["valueFrom"]["secretKeyRef"] == {
+            "name": "app-secret",
+            "key": "password",
+        }
 
     def test_with_env_from_all_fields(self) -> None:
         manifest = (
             PodBuilder("web")
             .with_container("app", "nginx")
-            .with_env_from("app", configmap_name="cfg", secret_name="sec", prefix="APP_")
+            .with_env_from(
+                "app", configmap_name="cfg", secret_name="sec", prefix="APP_"
+            )
             .build()
         )
         env_from = manifest["spec"]["containers"][0]["envFrom"][0]
@@ -145,7 +155,10 @@ class TestContainerHelpers:
 
     def test_with_resources_empty(self) -> None:
         manifest = (
-            PodBuilder("web").with_container("app", "nginx").with_resources("app").build()
+            PodBuilder("web")
+            .with_container("app", "nginx")
+            .with_resources("app")
+            .build()
         )
         assert manifest["spec"]["containers"][0]["resources"] == {}
 
@@ -332,15 +345,15 @@ class TestVolumes:
         assert manifest["spec"]["volumes"][0]["emptyDir"] == {}
 
     def test_with_volume_host_path(self) -> None:
-        manifest = PodBuilder("web").with_volume(
-            "hostvol", host_path={"path": "/mnt"}
-        ).build()
+        manifest = (
+            PodBuilder("web").with_volume("hostvol", host_path={"path": "/mnt"}).build()
+        )
         assert manifest["spec"]["volumes"][0]["hostPath"] == {"path": "/mnt"}
 
     def test_with_volume_projected(self) -> None:
-        manifest = PodBuilder("web").with_volume(
-            "proj", projected={"sources": []}
-        ).build()
+        manifest = (
+            PodBuilder("web").with_volume("proj", projected={"sources": []}).build()
+        )
         assert manifest["spec"]["volumes"][0]["projected"] == {"sources": []}
 
     def test_with_volume_no_source_is_bare(self) -> None:
@@ -359,9 +372,15 @@ class TestPodLevelSpecHelpers:
         assert manifest["spec"]["nodeName"] == "worker-1"
 
     def test_with_affinity_all_types(self) -> None:
-        manifest = PodBuilder("web").with_affinity(
-            node_affinity={"a": 1}, pod_affinity={"b": 2}, pod_anti_affinity={"c": 3}
-        ).build()
+        manifest = (
+            PodBuilder("web")
+            .with_affinity(
+                node_affinity={"a": 1},
+                pod_affinity={"b": 2},
+                pod_anti_affinity={"c": 3},
+            )
+            .build()
+        )
         assert manifest["spec"]["affinity"] == {
             "nodeAffinity": {"a": 1},
             "podAffinity": {"b": 2},
@@ -390,14 +409,22 @@ class TestPodLevelSpecHelpers:
         ]
 
     def test_with_service_account(self) -> None:
-        manifest = PodBuilder("web").with_service_account("my-sa", automount=False).build()
+        manifest = (
+            PodBuilder("web").with_service_account("my-sa", automount=False).build()
+        )
         assert manifest["spec"]["serviceAccountName"] == "my-sa"
         assert manifest["spec"]["automountServiceAccountToken"] is False
 
     def test_with_dns_config_full(self) -> None:
-        manifest = PodBuilder("web").with_dns_config(
-            nameservers=["8.8.8.8"], searches=["svc.cluster.local"], options=[{"name": "ndots"}]
-        ).build()
+        manifest = (
+            PodBuilder("web")
+            .with_dns_config(
+                nameservers=["8.8.8.8"],
+                searches=["svc.cluster.local"],
+                options=[{"name": "ndots"}],
+            )
+            .build()
+        )
         dns = manifest["spec"]["dnsConfig"]
         assert dns["nameservers"] == ["8.8.8.8"]
         assert dns["searches"] == ["svc.cluster.local"]
@@ -412,7 +439,10 @@ class TestPodLevelSpecHelpers:
         assert manifest["spec"]["dnsPolicy"] == "ClusterFirst"
 
     def test_with_host_network(self) -> None:
-        assert PodBuilder("web").with_host_network(True).build()["spec"]["hostNetwork"] is True
+        assert (
+            PodBuilder("web").with_host_network(True).build()["spec"]["hostNetwork"]
+            is True
+        )
 
     def test_with_host_pid(self) -> None:
         assert PodBuilder("web").with_host_pid(True).build()["spec"]["hostPID"] is True
@@ -421,9 +451,11 @@ class TestPodLevelSpecHelpers:
         assert PodBuilder("web").with_host_ipc(True).build()["spec"]["hostIPC"] is True
 
     def test_with_hostname_full(self) -> None:
-        manifest = PodBuilder("web").with_hostname(
-            "web-1", subdomain="svc", set_hostname_as_fqdn=True
-        ).build()
+        manifest = (
+            PodBuilder("web")
+            .with_hostname("web-1", subdomain="svc", set_hostname_as_fqdn=True)
+            .build()
+        )
         assert manifest["spec"]["hostname"] == "web-1"
         assert manifest["spec"]["subdomain"] == "svc"
         assert manifest["spec"]["setHostnameAsFQDN"] is True
@@ -457,15 +489,19 @@ class TestPodLevelSpecHelpers:
         assert manifest["spec"]["schedulerName"] == "custom-scheduler"
 
     def test_with_pod_security_context_full(self) -> None:
-        manifest = PodBuilder("web").with_pod_security_context(
-            run_as_user=1000,
-            run_as_group=1000,
-            run_as_non_root=True,
-            fs_group=2000,
-            fs_group_change_policy="OnRootMismatch",
-            supplemental_groups=[3000],
-            sysctls=[{"name": "net.core.somaxconn", "value": "1024"}],
-        ).build()
+        manifest = (
+            PodBuilder("web")
+            .with_pod_security_context(
+                run_as_user=1000,
+                run_as_group=1000,
+                run_as_non_root=True,
+                fs_group=2000,
+                fs_group_change_policy="OnRootMismatch",
+                supplemental_groups=[3000],
+                sysctls=[{"name": "net.core.somaxconn", "value": "1024"}],
+            )
+            .build()
+        )
         ctx = manifest["spec"]["securityContext"]
         assert ctx["fsGroup"] == 2000
         assert ctx["fsGroupChangePolicy"] == "OnRootMismatch"
@@ -477,7 +513,9 @@ class TestPodLevelSpecHelpers:
         assert "securityContext" not in manifest["spec"]
 
     def test_with_readiness_gate(self) -> None:
-        manifest = PodBuilder("web").with_readiness_gate("www.example.com/ready").build()
+        manifest = (
+            PodBuilder("web").with_readiness_gate("www.example.com/ready").build()
+        )
         assert manifest["spec"]["readinessGates"] == [
             {"conditionType": "www.example.com/ready"}
         ]

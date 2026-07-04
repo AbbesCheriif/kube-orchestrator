@@ -71,7 +71,11 @@ def _trim_prefix(value: str, prefix: str) -> str:
 
 
 def _build_env() -> Environment:
-    env = Environment(undefined=StrictUndefined, keep_trailing_newline=True)
+    # autoescape is intentionally off: this renders YAML manifests, not HTML,
+    # and HTML-escaping would corrupt values (e.g. "&" -> "&amp;" in labels).
+    env = Environment(  # nosec B701
+        undefined=StrictUndefined, keep_trailing_newline=True
+    )
     filters: dict[str, Any] = {
         "b64encode": _b64encode,
         "b64decode": _b64decode,

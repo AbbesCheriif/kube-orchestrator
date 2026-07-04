@@ -21,9 +21,11 @@ class TestNodeAffinityBuilder:
         assert NodeAffinityBuilder().build() == {}
 
     def test_required_during_scheduling(self) -> None:
-        result = NodeAffinityBuilder().required_during_scheduling(
-            "disktype", "In", ["ssd"]
-        ).build()
+        result = (
+            NodeAffinityBuilder()
+            .required_during_scheduling("disktype", "In", ["ssd"])
+            .build()
+        )
         terms = result["requiredDuringSchedulingIgnoredDuringExecution"][
             "nodeSelectorTerms"
         ]
@@ -56,40 +58,52 @@ class TestPodAffinityBuilder:
         assert PodAffinityBuilder().build() == {}
 
     def test_required_with_namespaces(self) -> None:
-        result = PodAffinityBuilder().required(
-            {"matchLabels": {"app": "web"}},
-            "kubernetes.io/hostname",
-            namespaces=["default"],
-            namespace_selector={"matchLabels": {"team": "core"}},
-        ).build()
+        result = (
+            PodAffinityBuilder()
+            .required(
+                {"matchLabels": {"app": "web"}},
+                "kubernetes.io/hostname",
+                namespaces=["default"],
+                namespace_selector={"matchLabels": {"team": "core"}},
+            )
+            .build()
+        )
         term = result["requiredDuringSchedulingIgnoredDuringExecution"][0]
         assert term["namespaces"] == ["default"]
         assert term["namespaceSelector"]["matchLabels"] == {"team": "core"}
 
     def test_required_without_optional_fields(self) -> None:
-        result = PodAffinityBuilder().required(
-            {"matchLabels": {"app": "web"}}, "kubernetes.io/hostname"
-        ).build()
+        result = (
+            PodAffinityBuilder()
+            .required({"matchLabels": {"app": "web"}}, "kubernetes.io/hostname")
+            .build()
+        )
         term = result["requiredDuringSchedulingIgnoredDuringExecution"][0]
         assert "namespaces" not in term
         assert "namespaceSelector" not in term
 
     def test_preferred_with_weight(self) -> None:
-        result = PodAffinityBuilder().preferred(
-            10, {"matchLabels": {"app": "web"}}, "kubernetes.io/hostname"
-        ).build()
+        result = (
+            PodAffinityBuilder()
+            .preferred(10, {"matchLabels": {"app": "web"}}, "kubernetes.io/hostname")
+            .build()
+        )
         preferred = result["preferredDuringSchedulingIgnoredDuringExecution"][0]
         assert preferred["weight"] == 10
         assert preferred["podAffinityTerm"]["topologyKey"] == "kubernetes.io/hostname"
 
     def test_preferred_with_namespaces_and_selector(self) -> None:
-        result = PodAffinityBuilder().preferred(
-            10,
-            {"matchLabels": {"app": "web"}},
-            "kubernetes.io/hostname",
-            namespaces=["prod"],
-            namespace_selector={"matchLabels": {"team": "core"}},
-        ).build()
+        result = (
+            PodAffinityBuilder()
+            .preferred(
+                10,
+                {"matchLabels": {"app": "web"}},
+                "kubernetes.io/hostname",
+                namespaces=["prod"],
+                namespace_selector={"matchLabels": {"team": "core"}},
+            )
+            .build()
+        )
         term = result["preferredDuringSchedulingIgnoredDuringExecution"][0][
             "podAffinityTerm"
         ]
@@ -103,23 +117,29 @@ class TestTopologySpreadBuilder:
         assert TopologySpreadBuilder().build() == []
 
     def test_add_constraint_minimal(self) -> None:
-        result = TopologySpreadBuilder().add_constraint(
-            1, "zone", "DoNotSchedule", {"matchLabels": {"app": "web"}}
-        ).build()
+        result = (
+            TopologySpreadBuilder()
+            .add_constraint(1, "zone", "DoNotSchedule", {"matchLabels": {"app": "web"}})
+            .build()
+        )
         assert result[0]["maxSkew"] == 1
         assert "minDomains" not in result[0]
 
     def test_add_constraint_with_all_optional_fields(self) -> None:
-        result = TopologySpreadBuilder().add_constraint(
-            1,
-            "zone",
-            "DoNotSchedule",
-            {"matchLabels": {"app": "web"}},
-            min_domains=2,
-            node_affinity_policy="Honor",
-            node_taints_policy="Ignore",
-            match_label_keys=["pod-template-hash"],
-        ).build()
+        result = (
+            TopologySpreadBuilder()
+            .add_constraint(
+                1,
+                "zone",
+                "DoNotSchedule",
+                {"matchLabels": {"app": "web"}},
+                min_domains=2,
+                node_affinity_policy="Honor",
+                node_taints_policy="Ignore",
+                match_label_keys=["pod-template-hash"],
+            )
+            .build()
+        )
         constraint = result[0]
         assert constraint["minDomains"] == 2
         assert constraint["nodeAffinityPolicy"] == "Honor"

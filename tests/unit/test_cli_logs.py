@@ -17,9 +17,7 @@ class TestLogsCommand:
     def test_streams_and_echoes_log_lines(self) -> None:
         with (
             patch("kube_orchestrator.core.client.KubeClient.get_instance"),
-            patch(
-                "kube_orchestrator.resources.workloads.pod.PodManager"
-            ) as pod_cls,
+            patch("kube_orchestrator.resources.workloads.pod.PodManager") as pod_cls,
         ):
             pod_cls.return_value.stream_logs.return_value = iter(
                 ["line one\n", "line two\n"]
@@ -33,9 +31,7 @@ class TestLogsCommand:
     def test_passes_options_through_to_stream_logs(self) -> None:
         with (
             patch("kube_orchestrator.core.client.KubeClient.get_instance"),
-            patch(
-                "kube_orchestrator.resources.workloads.pod.PodManager"
-            ) as pod_cls,
+            patch("kube_orchestrator.resources.workloads.pod.PodManager") as pod_cls,
         ):
             pod_cls.return_value.stream_logs.return_value = iter([])
             runner.invoke(
@@ -63,9 +59,7 @@ class TestLogsCommand:
     def test_keyboard_interrupt_is_silently_handled(self) -> None:
         with (
             patch("kube_orchestrator.core.client.KubeClient.get_instance"),
-            patch(
-                "kube_orchestrator.resources.workloads.pod.PodManager"
-            ) as pod_cls,
+            patch("kube_orchestrator.resources.workloads.pod.PodManager") as pod_cls,
         ):
             pod_cls.return_value.stream_logs.side_effect = KeyboardInterrupt()
             result = runner.invoke(app, ["web-1"])
@@ -75,9 +69,7 @@ class TestLogsCommand:
     def test_stream_failure_exits_1(self) -> None:
         with (
             patch("kube_orchestrator.core.client.KubeClient.get_instance"),
-            patch(
-                "kube_orchestrator.resources.workloads.pod.PodManager"
-            ) as pod_cls,
+            patch("kube_orchestrator.resources.workloads.pod.PodManager") as pod_cls,
         ):
             pod_cls.return_value.stream_logs.side_effect = RuntimeError("not found")
             result = runner.invoke(app, ["web-1"])

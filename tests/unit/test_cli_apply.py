@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from typer.testing import CliRunner
@@ -26,7 +26,9 @@ class TestApplyCommand:
         result = runner.invoke(app, [str(tmp_path / "missing.yaml")])
         assert result.exit_code == 1
 
-    def test_missing_values_file_exits_1(self, manifest_file: Path, tmp_path: Path) -> None:
+    def test_missing_values_file_exits_1(
+        self, manifest_file: Path, tmp_path: Path
+    ) -> None:
         result = runner.invoke(
             app, [str(manifest_file), "--values", str(tmp_path / "missing-values.yaml")]
         )
@@ -56,9 +58,10 @@ class TestApplyCommand:
 
         assert result.exit_code == 0
         applier_cls.return_value.apply_directory.assert_called_once()
-        assert applier_cls.return_value.apply_directory.call_args.kwargs[
-            "recursive"
-        ] is True
+        assert (
+            applier_cls.return_value.apply_directory.call_args.kwargs["recursive"]
+            is True
+        )
 
     def test_dry_run_prints_warning(self, manifest_file: Path) -> None:
         with (

@@ -46,9 +46,8 @@ class TestUseNamespace:
         assert get_active_context().namespace == "default"
 
     def test_restores_namespace_after_exception(self) -> None:
-        with pytest.raises(ValueError):
-            with use_namespace("prod"):
-                raise ValueError("boom")
+        with pytest.raises(ValueError), use_namespace("prod"):
+            raise ValueError("boom")
         assert get_active_context().namespace == "default"
 
     def test_nested_namespace_overrides(self) -> None:
@@ -66,9 +65,8 @@ class TestUseDryRun:
         assert get_active_context().dry_run is False
 
     def test_restores_dry_run_after_exception(self) -> None:
-        with pytest.raises(ValueError):
-            with use_dry_run():
-                raise ValueError("boom")
+        with pytest.raises(ValueError), use_dry_run():
+            raise ValueError("boom")
         assert get_active_context().dry_run is False
 
 
@@ -112,9 +110,8 @@ class TestUseContext:
             patch("kube_orchestrator.core.config.KubeConfig") as mock_config_cls,
         ):
             mock_config_cls.return_value.configuration = MagicMock()
-            with pytest.raises(ValueError):
-                with use_context("staging"):
-                    raise ValueError("boom")
+            with pytest.raises(ValueError), use_context("staging"):
+                raise ValueError("boom")
 
         assert mock_client._api_client.configuration is original_config
         assert get_active_context().context is None

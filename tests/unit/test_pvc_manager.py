@@ -21,7 +21,9 @@ class TestCreatePVC:
         self, pvc_manager: PVCManager, mock_core_v1: MagicMock
     ) -> None:
         pvc_manager.create_pvc("pvc-1", "default", ["ReadWriteOnce"], "5Gi")
-        call_kwargs = mock_core_v1.create_namespaced_persistent_volume_claim.call_args.kwargs
+        call_kwargs = (
+            mock_core_v1.create_namespaced_persistent_volume_claim.call_args.kwargs
+        )
         assert call_kwargs["body"]["spec"]["resources"]["requests"]["storage"] == "5Gi"
 
     def test_creates_with_all_optional_fields(
@@ -40,7 +42,9 @@ class TestCreatePVC:
             storage_limit="10Gi",
             labels={"app": "db"},
         )
-        call_kwargs = mock_core_v1.create_namespaced_persistent_volume_claim.call_args.kwargs
+        call_kwargs = (
+            mock_core_v1.create_namespaced_persistent_volume_claim.call_args.kwargs
+        )
         spec = call_kwargs["body"]["spec"]
         assert spec["storageClassName"] == "fast"
         assert spec["volumeName"] == "pv-1"
