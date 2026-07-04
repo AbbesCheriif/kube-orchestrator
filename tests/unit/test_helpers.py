@@ -10,6 +10,7 @@ from kube_orchestrator.resources.helpers import (
     build_field_selector,
     build_label_selector,
     build_metadata,
+    build_owner_reference,
     get_annotations,
     get_labels,
     merge_labels,
@@ -42,6 +43,11 @@ class TestBuildMetadata:
     def test_metadata_with_finalizers(self) -> None:
         meta = build_metadata("x", "y", finalizers=["kubernetes"])
         assert "kubernetes" in meta["finalizers"]
+
+    def test_metadata_with_owner_references(self) -> None:
+        refs = [{"kind": "Deployment", "name": "web"}]
+        meta = build_metadata("rs", "default", owner_references=refs)
+        assert meta["ownerReferences"] == refs
 
 
 @pytest.mark.unit
@@ -105,6 +111,31 @@ class TestLabelOperations:
         result = merge_labels(resource, {"env": "prod", "app": "api"})
         assert result["metadata"]["labels"]["env"] == "prod"
         assert result["metadata"]["labels"]["app"] == "api"
+
+
+@pytest.mark.unit
+class TestBuildOwnerReference:
+    def test_builds_reference_from_owner_manifest(self) -> None:
+        owner = {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "metadata": {"name": "web", "uid": "abc-123"},
+        }
+        ref = build_owner_reference(owner)
+        assert ref == {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "name": "web",
+            "uid": "abc-123",
+            "controller": True,
+            "blockOwnerDeletion": True,
+        }
+
+    def test_block_owner_deletion_false(self) -> None:
+        ref = build_owner_reference({}, block_owner_deletion=False)
+        assert ref["blockOwnerDeletion"] is False
+        assert ref["name"] == ""
+        assert ref["uid"] == ""
 
 
 @pytest.mark.unit

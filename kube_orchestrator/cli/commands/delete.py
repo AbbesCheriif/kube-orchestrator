@@ -5,7 +5,10 @@ from typing import Annotated
 
 import typer
 
-app = typer.Typer(help="Delete Kubernetes resources defined in manifests")
+app = typer.Typer(
+    help="Delete Kubernetes resources defined in manifests",
+    context_settings={"allow_interspersed_args": True},
+)
 
 
 @app.callback(invoke_without_command=True)
