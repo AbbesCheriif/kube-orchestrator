@@ -30,9 +30,7 @@ class TestDeployCommand:
     def test_deployment_name_defaults_from_image(self) -> None:
         with (
             patch("kube_orchestrator.core.client.KubeClient.get_instance"),
-            patch(
-                "kube_orchestrator.resources.workloads.deployment.DeploymentManager"
-            ),
+            patch("kube_orchestrator.resources.workloads.deployment.DeploymentManager"),
         ):
             result = runner.invoke(app, ["registry.io/team/api-server:1.2.3"])
 
@@ -41,9 +39,7 @@ class TestDeployCommand:
     def test_explicit_name_overrides_image_derived_name(self) -> None:
         with (
             patch("kube_orchestrator.core.client.KubeClient.get_instance"),
-            patch(
-                "kube_orchestrator.resources.workloads.deployment.DeploymentManager"
-            ),
+            patch("kube_orchestrator.resources.workloads.deployment.DeploymentManager"),
         ):
             result = runner.invoke(app, ["nginx:latest", "--name", "my-web"])
 
@@ -89,9 +85,7 @@ class TestDeployCommand:
     def test_dry_run_prints_info_message(self) -> None:
         with (
             patch("kube_orchestrator.core.client.KubeClient.get_instance"),
-            patch(
-                "kube_orchestrator.resources.workloads.deployment.DeploymentManager"
-            ),
+            patch("kube_orchestrator.resources.workloads.deployment.DeploymentManager"),
         ):
             result = runner.invoke(app, ["nginx:latest", "--dry-run"])
 

@@ -67,9 +67,7 @@ class TestRoleManager:
         call_body = mock_rbac_v1.create_namespaced_role.call_args.kwargs["body"]
         assert call_body.rules[0].resource_names == ["web"]
 
-    def test_add_rule(
-        self, role_manager: RoleManager, mock_rbac_v1: MagicMock
-    ) -> None:
+    def test_add_rule(self, role_manager: RoleManager, mock_rbac_v1: MagicMock) -> None:
         existing = MagicMock()
         existing.rules = []
         mock_rbac_v1.read_namespaced_role.return_value = existing
@@ -119,7 +117,9 @@ class TestClusterRoleManager:
             name="aggregated",
             rules=[],
             aggregation_rule={
-                "clusterRoleSelectors": [{"matchLabels": {"rbac.example.com/agg": "true"}}]
+                "clusterRoleSelectors": [
+                    {"matchLabels": {"rbac.example.com/agg": "true"}}
+                ]
             },
         )
         call_body = mock_rbac_v1.create_cluster_role.call_args.kwargs["body"]
@@ -171,7 +171,9 @@ class TestClusterRoleManager:
 @pytest.mark.unit
 class TestClusterRoleImportShim:
     def test_cluster_role_module_reexports_manager(self) -> None:
-        from kube_orchestrator.resources.rbac.cluster_role import ClusterRoleManager as Reexported
+        from kube_orchestrator.resources.rbac.cluster_role import (
+            ClusterRoleManager as Reexported,
+        )
 
         assert Reexported is ClusterRoleManager
 
@@ -233,9 +235,7 @@ class TestRoleBindingManager:
         existing = MagicMock()
         existing.subjects = []
         mock_rbac_v1.read_namespaced_role_binding.return_value = existing
-        rb_manager.add_subject(
-            "binding", "default", {"kind": "User", "name": "bob"}
-        )
+        rb_manager.add_subject("binding", "default", {"kind": "User", "name": "bob"})
         call_body = mock_rbac_v1.patch_namespaced_role_binding.call_args.kwargs["body"]
         assert call_body["subjects"] == [{"kind": "User", "name": "bob"}]
 
@@ -282,9 +282,7 @@ class TestClusterRoleBindingManager:
     def test_bind_service_account(
         self, crb_manager: ClusterRoleBindingManager, crb_api: MagicMock
     ) -> None:
-        crb_manager.bind_service_account(
-            "binding", "node-reader", "my-sa", "default"
-        )
+        crb_manager.bind_service_account("binding", "node-reader", "my-sa", "default")
         call_kwargs = crb_api.create_cluster_role_binding.call_args.kwargs
         assert call_kwargs["body"]["subjects"][0]["kind"] == "ServiceAccount"
 
@@ -320,9 +318,7 @@ class TestClusterRoleBindingManager:
         crb_manager.delete_clusterrolebinding("binding")
         crb_api.delete_cluster_role_binding.assert_called_once()
 
-    def test_kind_and_api_version(
-        self, crb_manager: ClusterRoleBindingManager
-    ) -> None:
+    def test_kind_and_api_version(self, crb_manager: ClusterRoleBindingManager) -> None:
         assert crb_manager._kind() == "ClusterRoleBinding"
         assert crb_manager._api_version() == "rbac.authorization.k8s.io/v1"
         assert crb_manager._resource_name() == "cluster_role_binding"

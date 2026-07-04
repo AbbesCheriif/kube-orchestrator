@@ -81,7 +81,9 @@ class TestListMetrics:
         }
         result = metrics_client.list_pod_metrics("default")
         assert [m["name"] for m in result] == ["a", "b"]
-        kwargs = mock_kube_client.custom_objects.list_namespaced_custom_object.call_args.kwargs
+        kwargs = (
+            mock_kube_client.custom_objects.list_namespaced_custom_object.call_args.kwargs
+        )
         assert "label_selector" not in kwargs
 
     def test_list_pod_metrics_with_selector(
@@ -91,7 +93,9 @@ class TestListMetrics:
             "items": []
         }
         metrics_client.list_pod_metrics("default", label_selector="app=web")
-        kwargs = mock_kube_client.custom_objects.list_namespaced_custom_object.call_args.kwargs
+        kwargs = (
+            mock_kube_client.custom_objects.list_namespaced_custom_object.call_args.kwargs
+        )
         assert kwargs["label_selector"] == "app=web"
 
     def test_list_pod_metrics_returns_empty_on_error(
@@ -168,7 +172,9 @@ class TestParseHelpers:
     def test_parse_cpu_plain_cores(self, metrics_client: MetricsClient) -> None:
         assert metrics_client._parse_cpu("2") == 2.0
 
-    def test_parse_cpu_invalid_returns_zero(self, metrics_client: MetricsClient) -> None:
+    def test_parse_cpu_invalid_returns_zero(
+        self, metrics_client: MetricsClient
+    ) -> None:
         assert metrics_client._parse_cpu("garbage") == 0.0
 
     def test_parse_memory_suffixes(self, metrics_client: MetricsClient) -> None:

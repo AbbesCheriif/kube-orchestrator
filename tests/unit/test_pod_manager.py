@@ -269,9 +269,7 @@ class TestPodManagerWaiting:
 
 @pytest.mark.unit
 class TestPodManagerWatchAndUsage:
-    def test_watch_status_invokes_callback(
-        self, pod_manager: PodManager
-    ) -> None:
+    def test_watch_status_invokes_callback(self, pod_manager: PodManager) -> None:
         events = [{"type": "MODIFIED", "object": "pod-obj"}]
         received = []
         with patch("kubernetes.watch.Watch") as watch_cls:

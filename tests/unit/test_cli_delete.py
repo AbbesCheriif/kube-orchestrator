@@ -68,9 +68,7 @@ class TestDeleteCommand:
             patch("kube_orchestrator.manifest.deleter.ManifestDeleter") as deleter_cls,
         ):
             deleter_cls.return_value.delete_file.return_value = []
-            runner.invoke(
-                app, [str(manifest_file), "--force", "--grace-period", "30"]
-            )
+            runner.invoke(app, [str(manifest_file), "--force", "--grace-period", "30"])
 
         assert (
             deleter_cls.return_value.delete_file.call_args.kwargs["grace_period"] == 0

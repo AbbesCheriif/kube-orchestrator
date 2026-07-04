@@ -29,7 +29,9 @@ class TestStatefulSetBuilderMetadata:
 @pytest.mark.unit
 class TestReplicasServiceSelector:
     def test_with_replicas(self) -> None:
-        assert StatefulSetBuilder("db").with_replicas(3).build()["spec"]["replicas"] == 3
+        assert (
+            StatefulSetBuilder("db").with_replicas(3).build()["spec"]["replicas"] == 3
+        )
 
     def test_with_service_name(self) -> None:
         manifest = StatefulSetBuilder("db").with_service_name("db-headless").build()
@@ -41,16 +43,20 @@ class TestReplicasServiceSelector:
 
     def test_with_selector_match_expressions(self) -> None:
         expr = [{"key": "tier", "operator": "In", "values": ["backend"]}]
-        manifest = StatefulSetBuilder("db").with_selector(
-            {"app": "db"}, match_expressions=expr
-        ).build()
+        manifest = (
+            StatefulSetBuilder("db")
+            .with_selector({"app": "db"}, match_expressions=expr)
+            .build()
+        )
         assert manifest["spec"]["selector"]["matchExpressions"] == expr
 
 
 @pytest.mark.unit
 class TestPodManagementAndStrategy:
     def test_with_pod_management_policy(self) -> None:
-        manifest = StatefulSetBuilder("db").with_pod_management_policy("Parallel").build()
+        manifest = (
+            StatefulSetBuilder("db").with_pod_management_policy("Parallel").build()
+        )
         assert manifest["spec"]["podManagementPolicy"] == "Parallel"
 
     def test_with_rolling_update_minimal(self) -> None:
@@ -61,9 +67,11 @@ class TestPodManagementAndStrategy:
         }
 
     def test_with_rolling_update_with_max_unavailable(self) -> None:
-        manifest = StatefulSetBuilder("db").with_rolling_update(
-            max_unavailable=1, partition=2
-        ).build()
+        manifest = (
+            StatefulSetBuilder("db")
+            .with_rolling_update(max_unavailable=1, partition=2)
+            .build()
+        )
         rolling = manifest["spec"]["updateStrategy"]["rollingUpdate"]
         assert rolling == {"partition": 2, "maxUnavailable": 1}
 
@@ -94,9 +102,11 @@ class TestRolloutControls:
         }
 
     def test_with_pvc_retention_policy_custom(self) -> None:
-        manifest = StatefulSetBuilder("db").with_pvc_retention_policy(
-            when_deleted="Delete", when_scaled="Delete"
-        ).build()
+        manifest = (
+            StatefulSetBuilder("db")
+            .with_pvc_retention_policy(when_deleted="Delete", when_scaled="Delete")
+            .build()
+        )
         policy = manifest["spec"]["persistentVolumeClaimRetentionPolicy"]
         assert policy == {"whenDeleted": "Delete", "whenScaled": "Delete"}
 
@@ -104,22 +114,28 @@ class TestRolloutControls:
 @pytest.mark.unit
 class TestVolumeClaimTemplates:
     def test_add_volume_claim_template_minimal(self) -> None:
-        manifest = StatefulSetBuilder("db").add_volume_claim_template(
-            "data", "10Gi", ["ReadWriteOnce"]
-        ).build()
+        manifest = (
+            StatefulSetBuilder("db")
+            .add_volume_claim_template("data", "10Gi", ["ReadWriteOnce"])
+            .build()
+        )
         pvc = manifest["spec"]["volumeClaimTemplates"][0]
         assert pvc["metadata"]["name"] == "data"
         assert pvc["spec"]["resources"]["requests"]["storage"] == "10Gi"
 
     def test_add_volume_claim_template_full(self) -> None:
-        manifest = StatefulSetBuilder("db").add_volume_claim_template(
-            "data",
-            "10Gi",
-            ["ReadWriteOnce"],
-            storage_class_name="fast",
-            volume_mode="Filesystem",
-            selector={"matchLabels": {"tier": "gold"}},
-        ).build()
+        manifest = (
+            StatefulSetBuilder("db")
+            .add_volume_claim_template(
+                "data",
+                "10Gi",
+                ["ReadWriteOnce"],
+                storage_class_name="fast",
+                volume_mode="Filesystem",
+                selector={"matchLabels": {"tier": "gold"}},
+            )
+            .build()
+        )
         pvc_spec = manifest["spec"]["volumeClaimTemplates"][0]["spec"]
         assert pvc_spec["storageClassName"] == "fast"
         assert pvc_spec["volumeMode"] == "Filesystem"

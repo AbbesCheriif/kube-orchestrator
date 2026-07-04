@@ -65,7 +65,8 @@ class TestResourceWatcherStreams:
         with patch("kubernetes.watch.Watch") as watch_cls:
             watch_cls.return_value.stream.return_value = events
             _run_and_join(
-                watcher, lambda: watcher.watch_nodes(callback=lambda t, o: received.append(t))
+                watcher,
+                lambda: watcher.watch_nodes(callback=lambda t, o: received.append(t)),
             )
 
         assert received == ["ADDED"]
@@ -93,7 +94,9 @@ class TestResourceWatcherStreams:
             watch_cls.return_value.stream.return_value = events
             _run_and_join(watcher, lambda: watcher.watch_pods("default"))
 
-    def test_callback_error_is_caught_and_logged(self, watcher: ResourceWatcher) -> None:
+    def test_callback_error_is_caught_and_logged(
+        self, watcher: ResourceWatcher
+    ) -> None:
         events = [{"type": "ADDED", "object": {"kind": "Pod"}}]
 
         def _boom(_t: str, _o: dict) -> None:
@@ -101,7 +104,9 @@ class TestResourceWatcherStreams:
 
         with patch("kubernetes.watch.Watch") as watch_cls:
             watch_cls.return_value.stream.return_value = events
-            _run_and_join(watcher, lambda: watcher.watch_pods("default", callback=_boom))
+            _run_and_join(
+                watcher, lambda: watcher.watch_pods("default", callback=_boom)
+            )
 
     def test_stream_error_is_caught_and_logged(self, watcher: ResourceWatcher) -> None:
         with patch("kubernetes.watch.Watch") as watch_cls:
@@ -176,7 +181,9 @@ class TestResourceWatcherAny:
     def test_watch_any_is_case_insensitive(self, watcher: ResourceWatcher) -> None:
         with patch("kubernetes.watch.Watch") as watch_cls:
             watch_cls.return_value.stream.return_value = []
-            _run_and_join(watcher, lambda: watcher.watch_any("PODS", namespace="default"))
+            _run_and_join(
+                watcher, lambda: watcher.watch_any("PODS", namespace="default")
+            )
 
 
 @pytest.mark.unit

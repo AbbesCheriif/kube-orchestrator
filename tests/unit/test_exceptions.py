@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from kubernetes.client.exceptions import ApiException
 
 from kube_orchestrator.core.exceptions import (

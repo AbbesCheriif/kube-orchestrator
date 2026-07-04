@@ -70,7 +70,12 @@ class TestPrintHealthReport:
     def test_node_health_error_is_surfaced(self, captured_console: io.StringIO) -> None:
         report = {
             "score": 0,
-            "nodes": {"error": "connection refused", "ready": 0, "not_ready": 0, "total": 0},
+            "nodes": {
+                "error": "connection refused",
+                "ready": 0,
+                "not_ready": 0,
+                "total": 0,
+            },
             "control_plane": {
                 "api_server": False,
                 "scheduler": False,

@@ -114,8 +114,8 @@ class TestDiscoverAllCrds:
     def test_raises_parsed_exception_on_api_error(
         self, discovery: APIDiscovery, mock_kube_client: MagicMock
     ) -> None:
-        mock_kube_client.api_extensions_v1.list_custom_resource_definition.side_effect = (
-            ApiException(status=403, reason="forbidden")
+        mock_kube_client.api_extensions_v1.list_custom_resource_definition.side_effect = ApiException(
+            status=403, reason="forbidden"
         )
         with pytest.raises(AuthorizationError):
             discovery.discover_all_crds()

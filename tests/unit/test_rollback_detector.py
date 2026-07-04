@@ -10,16 +10,18 @@ import pytest
 from kube_orchestrator.rollback.detector import RolloutDetector
 
 
-def _run_and_join(action) -> None:  # noqa: ANN001 - test helper
+def _run_and_join(action) -> None:
     created: dict[str, threading.Thread] = {}
     real_thread = threading.Thread
 
-    def _capture(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
+    def _capture(*args, **kwargs):
         thread = real_thread(*args, **kwargs)
         created["thread"] = thread
         return thread
 
-    with patch("kube_orchestrator.rollback.detector.threading.Thread", side_effect=_capture):
+    with patch(
+        "kube_orchestrator.rollback.detector.threading.Thread", side_effect=_capture
+    ):
         action()
     created["thread"].join(timeout=2)
     assert not created["thread"].is_alive()
@@ -299,5 +301,7 @@ class TestWatchAndDetect:
         with patch("kubernetes.watch.Watch") as watch_cls:
             watch_cls.return_value.stream.side_effect = RuntimeError("connection lost")
             _run_and_join(
-                lambda: detector.watch_and_detect("web", "default", lambda name, ns: None)
+                lambda: detector.watch_and_detect(
+                    "web", "default", lambda name, ns: None
+                )
             )

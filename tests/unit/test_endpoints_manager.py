@@ -24,9 +24,18 @@ class TestCreateEndpoints:
             "default",
             subsets=[
                 {
-                    "addresses": [{"ip": "10.0.0.1", "hostname": "web-1", "nodeName": "n1"}],
+                    "addresses": [
+                        {"ip": "10.0.0.1", "hostname": "web-1", "nodeName": "n1"}
+                    ],
                     "notReadyAddresses": [{"ip": "10.0.0.2"}],
-                    "ports": [{"port": 80, "name": "http", "protocol": "TCP", "appProtocol": "http"}],
+                    "ports": [
+                        {
+                            "port": 80,
+                            "name": "http",
+                            "protocol": "TCP",
+                            "appProtocol": "http",
+                        }
+                    ],
                 }
             ],
         )

@@ -228,7 +228,9 @@ class TestRolloutManagement:
 
 @pytest.mark.unit
 class TestRolloutHistoryAndRollback:
-    def _make_replicaset(self, name: str, revision: str, deployment_name: str) -> MagicMock:
+    def _make_replicaset(
+        self, name: str, revision: str, deployment_name: str
+    ) -> MagicMock:
         ref = MagicMock(kind="Deployment", name=deployment_name)
         ref.name = deployment_name
         rs = MagicMock()
@@ -295,7 +297,10 @@ class TestRolloutHistoryAndRollback:
 @pytest.mark.unit
 class TestRelatedResources:
     def test_get_pods(
-        self, dep_manager: DeploymentManager, mock_apps_v1: MagicMock, mock_core_v1: MagicMock
+        self,
+        dep_manager: DeploymentManager,
+        mock_apps_v1: MagicMock,
+        mock_core_v1: MagicMock,
     ) -> None:
         dep = MagicMock()
         dep.spec.selector.match_labels = {"app": "web"}
@@ -306,7 +311,10 @@ class TestRelatedResources:
         assert result == ["pod-a"]
 
     def test_get_pods_raises_parsed_exception(
-        self, dep_manager: DeploymentManager, mock_apps_v1: MagicMock, mock_core_v1: MagicMock
+        self,
+        dep_manager: DeploymentManager,
+        mock_apps_v1: MagicMock,
+        mock_core_v1: MagicMock,
     ) -> None:
         dep = MagicMock()
         dep.spec.selector.match_labels = {"app": "web"}
@@ -332,7 +340,9 @@ class TestRelatedResources:
         with pytest.raises(APIError):
             dep_manager.get_replica_sets("test-deploy", "default")
 
-    def _make_replicaset(self, name: str, revision: str, deployment_name: str) -> MagicMock:
+    def _make_replicaset(
+        self, name: str, revision: str, deployment_name: str
+    ) -> MagicMock:
         ref = MagicMock(kind="Deployment", name=deployment_name)
         ref.name = deployment_name
         rs = MagicMock()
@@ -347,7 +357,12 @@ class TestStatusHelpers:
     def test_get_conditions(
         self, dep_manager: DeploymentManager, mock_apps_v1: MagicMock
     ) -> None:
-        cond = MagicMock(type="Progressing", status="True", reason="NewReplicaSetAvailable", message="ok")
+        cond = MagicMock(
+            type="Progressing",
+            status="True",
+            reason="NewReplicaSetAvailable",
+            message="ok",
+        )
         dep = MagicMock()
         dep.status.conditions = [cond]
         mock_apps_v1.read_namespaced_deployment.return_value = dep

@@ -194,6 +194,7 @@ ignore = [
     "E501",
     "A001", # ConnectionError/TimeoutError intentionally shadow builtins in the exception hierarchy
     "A002", # `format` argument name matches the documented public API (configure_logging, get_cluster_health)
+    "A004", # same ConnectionError/TimeoutError shadowing, via import this time
     "RUF001", # Unicode status glyphs (i, checkmarks) are intentional in CLI/log output
     "RUF002",
 ]

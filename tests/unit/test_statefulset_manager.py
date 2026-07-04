@@ -125,7 +125,10 @@ class TestStatefulSetManager:
 @pytest.mark.unit
 class TestOrderedScaling:
     def test_ordered_scale_up_scales_and_waits(
-        self, ss_manager: StatefulSetManager, mock_apps_v1: MagicMock, mock_core_v1: MagicMock
+        self,
+        ss_manager: StatefulSetManager,
+        mock_apps_v1: MagicMock,
+        mock_core_v1: MagicMock,
     ) -> None:
         sts = MagicMock()
         sts.spec.replicas = 1
@@ -302,8 +305,8 @@ class TestRolloutStatusAndPvcs:
     def test_get_persistent_volume_claims_raises_parsed_exception(
         self, ss_manager: StatefulSetManager, mock_core_v1: MagicMock
     ) -> None:
-        mock_core_v1.list_namespaced_persistent_volume_claim.side_effect = (
-            ApiException(status=500)
+        mock_core_v1.list_namespaced_persistent_volume_claim.side_effect = ApiException(
+            status=500
         )
         with pytest.raises(APIError):
             ss_manager.get_persistent_volume_claims("my-ss", "default")

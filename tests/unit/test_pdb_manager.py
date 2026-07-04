@@ -31,7 +31,10 @@ class TestCreatePdb:
         self, pdb_manager: PodDisruptionBudgetManager, policy_api: MagicMock
     ) -> None:
         pdb_manager.create_pdb(
-            "web-pdb", "default", selector={"matchLabels": {"app": "web"}}, min_available=2
+            "web-pdb",
+            "default",
+            selector={"matchLabels": {"app": "web"}},
+            min_available=2,
         )
         call_kwargs = (
             policy_api.create_namespaced_pod_disruption_budget.call_args.kwargs
@@ -200,7 +203,9 @@ class TestStatusHelpers:
 
 @pytest.mark.unit
 class TestMeta:
-    def test_kind_and_api_version(self, pdb_manager: PodDisruptionBudgetManager) -> None:
+    def test_kind_and_api_version(
+        self, pdb_manager: PodDisruptionBudgetManager
+    ) -> None:
         assert pdb_manager._kind() == "PodDisruptionBudget"
         assert pdb_manager._api_version() == "policy/v1"
         assert pdb_manager._resource_name() == "pod_disruption_budget"

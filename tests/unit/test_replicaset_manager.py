@@ -251,7 +251,9 @@ class TestValidationAndStatus:
         rs.status.ready_replicas = 3
         mock_apps_v1.read_namespaced_replica_set.return_value = rs
         assert (
-            rs_manager.wait_for_replicas("web-rs", "default", count=3, timeout_seconds=5)
+            rs_manager.wait_for_replicas(
+                "web-rs", "default", count=3, timeout_seconds=5
+            )
             is True
         )
 

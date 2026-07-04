@@ -22,9 +22,11 @@ class TestHpaWorkflow:
         dep_manager = DeploymentManager(kube_client=kube_client)
         hpa_manager = HPAManager(kube_client=kube_client)
 
-        pod = PodBuilder("hpa-target").with_container(
-            "app", "nginx:1.24"
-        ).with_resources("app", cpu_request="50m")
+        pod = (
+            PodBuilder("hpa-target")
+            .with_container("app", "nginx:1.24")
+            .with_resources("app", cpu_request="50m")
+        )
         builder = (
             DeploymentBuilder("hpa-target", test_namespace)
             .with_replicas(1)

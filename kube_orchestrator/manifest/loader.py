@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 import yaml
@@ -35,8 +36,11 @@ def load_string(content: str) -> list[dict[str, Any]]:
 
 def load_url(url: str, headers: dict[str, str] | None = None) -> list[dict[str, Any]]:
     """Fetch and parse YAML manifests from a remote URL."""
+    scheme = urlparse(url).scheme
+    if scheme not in ("http", "https"):
+        raise ValueError(f"Unsupported URL scheme {scheme!r}: only http/https allowed")
     req = Request(url, headers=headers or {})
-    with urlopen(req, timeout=30) as response:
+    with urlopen(req, timeout=30) as response:  # nosec B310 - scheme validated above
         content = response.read().decode("utf-8")
     return load_string(content)
 
