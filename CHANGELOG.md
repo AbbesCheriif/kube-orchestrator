@@ -22,7 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - N/A
 
 ### Fixed
-- N/A
+- The "Coverage" README badge showed "unknown": `codecov/codecov-action@v4`
+  was never given a token, so the coverage upload failed silently
+  (`fail_ci_if_error: false` hid it) and Codecov never received a report.
 
 ### Security
 - N/A
