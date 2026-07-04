@@ -137,6 +137,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`AbbesCheriif`) directly in the image tag; Docker/OCI repository
   names must be lowercase, so every build failed with
   "repository name must be lowercase".
+- The Docker image built inside `release.yml` had no `.git` directory
+  in its build context, so `setuptools-scm` couldn't derive a version
+  and silently fell back to `0.0.0`; `kube-orchestrator --version`
+  inside the published `:1.0.0` image would have reported `0.0.0`.
+  The real tag version is now passed in via a `VERSION` build-arg.
 
 [Unreleased]: https://github.com/AbbesCheriif/kube-orchestrator/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/AbbesCheriif/kube-orchestrator/releases/tag/v1.0.0
