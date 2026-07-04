@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- Stage 1: builder ----------------------------------------------------
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 WORKDIR /src
 
@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir build && \
     python -m build --wheel
 
 # ---- Stage 2: runtime -----------------------------------------------------
-FROM python:3.12-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 LABEL org.opencontainers.image.title="kube-orchestrator" \
       org.opencontainers.image.description="A full-featured Python SDK for Kubernetes" \
